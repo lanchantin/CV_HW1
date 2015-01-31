@@ -20,6 +20,12 @@ import numpy as np
 img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
 print(img.shape)
 
+
+
+######
+##2.## Find the x and y components of the gradient Fx and Fy of the image smoothed with a Gaussian.
+######
+
 #pylab.imshow(g); pylab.show()
 
 def rgb2gray(rgb):
@@ -38,10 +44,6 @@ kernel2d = [[xh*xv for xh in hkernel] for xv in vkernel]
 kernelsum = sum([sum(row) for row in kernel2d])
 kernel2d = [[x/kernelsum for x in row] for row in kernel2d]
 k = np.array(kernel2d)
-
-######
-##2.## Find the x and y components of the gradient Fx and Fy of the image smoothed with a Gaussian.
-######
 
 blurImg = scipy.signal.convolve2d(g, k)
 #plt.imshow(blurImg, cmap = plt.get_cmap('gray'));plt.show()
@@ -68,75 +70,25 @@ D = np.degrees(D)
 #plt.imshow(D, cmap = plt.get_cmap('gray')); plt.show()
 
 
-################################
-####Nonmaximum suppression######
-################################
 
-##1.## For each pixel find the direction D* in (0, 45, 90, 135) that is closest to the orientation D at that pixel.
+########################
+####Finding Corners:####
+########################
 
-degList = [0,45,90,135]
 
-D_star = [[0 for x in range(len(D[0]))] for y in range(len(D))]
-D_star = np.array(D_star)
-D_star.shape
-
+######
+##1.## Compute the covariance matrix C over a neighborhood around each point.
+######
 for x in range(D.shape[0]):
 	for y in range(D.shape[1]):
-		if D[x][y] < 0:
-			D[x][y] = D[x][y] + 180
-		D_star[x][y] = round(D[x][y]/45.0)
-		D_star[x][y] = (D_star[x][y])*45.0
-
-#plt.imshow(D_star, cmap = plt.get_cmap('gray')); plt.show()
+		
 
 
-##2.## If the edge strength F(x,y) is smaller than at least one of its neighbors along D*, set I(x,y) = 0, else set I(x,y) = F(x,y)
+######
+##2.## Compute the smaller eigenvalue of C. 
+######
 
-I = [[0 for x in range(len(F[0]))] for y in range(len(F))]
-for x in range(F.shape[0]):
-	for y in range(F.shape[1]):
-		if(D_star[x,y] == 0 or D_star[x,y] == 180):
-			try:
-				if(F[x][y] < F[x+1][y] or F[x][y] < F[x-1][y]):
-					I[x][y] = 0
-				else:
-					I[x][y] = F[x][y]
-			except:
-				pass
-		elif(D_star[x,y] == 45):
-			try:
-				if(F[x][y] < F[x+1][y] or F[x][y] < F[x-1][y-1]):
-					I[x][y] = 0
-				else:
-					I[x][y] = F[x][y]
-			except:
-				pass
-		elif(D_star[x,y] == 90):
-			try:
-				if(F[x][y] < F[x][y+1] or F[x][y] < F[x][y-1]):
-					I[x][y] = 0
-				else:
-					I[x][y] = F[x][y]
-			except:
-				pass
-		else:
-			try:
-				if(F[x][y] < F[x-1][y+1] or F[x][y] < F[x+1][y-1]):
-					I[x][y] = 0.0
-				else:
-					I[x][y] = F[x][y]
-			except:
-				pass
+######
+##3.## Save all points at which the smaller eigenvalue l2 is greater than a threshold into a list L.
+######
 
-plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
-
-
-
-
-
-
-
-
-
-
-#3. Compute the edge strength F (the magnitude of the gradient) and edge orientation D = arctan(Fy/Fx) at each pixel.
