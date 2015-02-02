@@ -146,6 +146,7 @@ plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 # 3. Mark each pixel as it is visited.
 
 iMarked = [[0 for x in range(len(I[0]))] for y in range(len(I))]
+newI = [[0 for x in range(len(I[0]))] for y in range(len(I))]
 T_h = 0
 T_i = 0
 
@@ -153,8 +154,32 @@ for x in range(I.shape[0]):
 	for y in range(I.shape[1]):
 		if (iMarked[x][y] != 1):
 			if (I[x][y] > T_h):
-				while (I[x][y] > T_l):
-					if I[x-1][y] > T_l
+				iMarked[x][y] = 1
+				newI[x][y] = iMarked[x][y]
+				xT = x
+				yT = y
+				while (I[xT][yT] > T_l):
+					iMarked[xT][yT] = 1
+					newI[x][y] = iMarked[x][y]
+					if I[xT-1][yT] > T_l:
+						
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
