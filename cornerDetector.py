@@ -79,10 +79,34 @@ D = np.degrees(D)
 ######
 ##1.## Compute the covariance matrix C over a neighborhood around each point.
 ######
+vector = np.array([])
 for x in range(D.shape[0]):
 	for y in range(D.shape[1]):
-		
+		try: vector = np.append(vector, D[x-1][y])
+		except: pass
 
+		try: vector = np.append(vector, D[x-1][y+1])
+		except: pass
+
+		try: vector = np.append(vector, D[x][y+1])
+		except: pass
+
+		try: vector = np.append(vector, D[x+1][y+1])
+		except: pass
+
+		try: vector = np.append(vector, D[x+1][y])
+		except: pass
+
+		try: vector = np.append(vector, D[x+1][y-1])
+		except: pass
+
+		try: vector = np.append(vector, D[x][y-1])
+		except: pass
+
+		try: vector = np.append(vector, D[x-1][y-1])
+		except: pass
+
+		print np.cov(vector)
 
 ######
 ##2.## Compute the smaller eigenvalue of C. 
