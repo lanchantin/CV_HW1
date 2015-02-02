@@ -135,8 +135,30 @@ plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
 
 
+######################################
+###### Hysteresis thresholding: ######
+######################################
+
+
+#Repeatedly do the following:
+# 1. Locate the next unvisited pixel (x,y) such that I(x,y) > T_h.
+# 2. Starting from (x,y), follow the chain of connected local maxima, in both directions, as long as I(x,y) > T_l.
+# 3. Mark each pixel as it is visited.
+
+iMarked = [[0 for x in range(len(I[0]))] for y in range(len(I))]
+T_h = 0
+T_i = 0
+
+for x in range(I.shape[0]):
+	for y in range(I.shape[1]):
+		if (iMarked[x][y] != 1):
+			if (I[x][y] > T_h):
+				while (I[x][y] > T_l):
+					if I[x-1][y] > T_l
 
 
 
 
-#3. Compute the edge strength F (the magnitude of the gradient) and edge orientation D = arctan(Fy/Fx) at each pixel.
+
+
+
