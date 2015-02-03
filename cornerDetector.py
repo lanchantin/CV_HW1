@@ -79,34 +79,66 @@ D = np.degrees(D)
 ######
 ##1.## Compute the covariance matrix C over a neighborhood around each point.
 ######
-vector = np.array([])
+
+L = {}
 for x in range(D.shape[0]):
 	for y in range(D.shape[1]):
-		try: vector = np.append(vector, D[x-1][y])
+		Ex = (Fx[x][y])**2
+		Exy = (Fx[x][y])*(Fy[x][y])
+		Ey = (Fy[x][y])**2
+		try: 
+			Ex = Ex + (Fx[x-1][y])**2
+			Exy = Exy + (Fx[x-1][y])*(Fy[x-1][y])
+			Ey = Ey + (Fy[x-1][y])**2
 		except: pass
 
-		try: vector = np.append(vector, D[x-1][y+1])
+		try:
+			Ex = Ex + (Fx[x-1][y+1])**2
+			Exy = Exy + (Fx[x-1][y+1])*(Fy[x-1][y+1])
+			Ey = Ey + (Fy[x-1][y+1])**2
 		except: pass
 
-		try: vector = np.append(vector, D[x][y+1])
+		try:
+			Ex = Ex + (Fx[x][y+1])**2
+			Exy = Exy + (Fx[x][y+1])*(Fy[x][y+1])
+			Ey = Ey + (Fy[x][y+1])**2
 		except: pass
 
-		try: vector = np.append(vector, D[x+1][y+1])
+		try: 
+			Ex = Ex + (Fx[x+1][y+1])**2
+			Exy = Exy + (Fx[x+1][y+1])*(Fy[x+1][y+1])
+			Ey = Ey + (Fy[x+1][y+1])**2
 		except: pass
 
-		try: vector = np.append(vector, D[x+1][y])
+		try: 
+			Ex = Ex + (Fx[x+1][y])**2
+			Exy = Exy + (Fx[x+1][y])*(Fy[x+1][y])
+			Ey = Ey + (Fy[x+1][y])**2
 		except: pass
 
-		try: vector = np.append(vector, D[x+1][y-1])
+		try: 
+			Ex = Ex + (Fx[x+1][y-1])**2
+			Exy = Exy + (Fx[x+1][y-1])*(Fy[x+1][y-1])
+			Ey = Ey + (Fy[x+1][y-1])**2
 		except: pass
 
-		try: vector = np.append(vector, D[x][y-1])
+		try: 
+			Ex = Ex + (Fx[x][y-1])**2
+			Exy = Exy + (Fx[x][y-1])*(Fy[x][y-1])
+			Ey = Ey + (Fy[x][y-1])**2
 		except: pass
 
-		try: vector = np.append(vector, D[x-1][y-1])
+		try: 
+			Ex = Ex + (Fx[x-1][y-1])**2
+			Exy = Exy + (Fx[x-1][y-1])*(Fy[x-1][y-1])
+			Ey = Ey + (Fy[x-1][y-1])**2
 		except: pass
 
-		print np.cov(vector)
+		C = np.array([[Ex, Exy], [Exy, Ey]])
+
+		eigVals = np.linalg.eigvals(a)
+		smallEig = np.amin(eigVals)
+		#print np.cov(C)
 
 ######
 ##2.## Compute the smaller eigenvalue of C. 
