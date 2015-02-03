@@ -136,9 +136,11 @@ for x in range(D.shape[0]):
 
 		C = np.array([[Ex, Exy], [Exy, Ey]])
 
-		eigVals = np.linalg.eigvals(a)
+		eigVals = np.linalg.eigvals(C)
 		smallEig = np.amin(eigVals)
-		#print np.cov(C)
+		
+		if smallEig > 0.01:
+			L.append(smallEig)
 
 ######
 ##2.## Compute the smaller eigenvalue of C. 
