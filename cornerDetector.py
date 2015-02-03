@@ -80,7 +80,7 @@ D = np.degrees(D)
 ##1.## Compute the covariance matrix C over a neighborhood around each point.
 ######
 
-L = {}
+L = []
 for x in range(D.shape[0]):
 	for y in range(D.shape[1]):
 		Ex = (Fx[x][y])**2
@@ -141,6 +141,8 @@ for x in range(D.shape[0]):
 		
 		if smallEig > 0.01:
 			L.append(smallEig)
+
+
 
 ######
 ##2.## Compute the smaller eigenvalue of C. 

@@ -61,9 +61,9 @@ Fy = scipy.signal.convolve2d(blurImg, Kgy)
 ##3.## Compute the edge strength F (the magnitude of the gradient) and edge orientation D = arctan(Fy/Fx) at each pixel.
 ######
 F = np.absolute(Fx) + np.absolute(Fy)
+#plt.imshow(F, cmap = plt.get_cmap('gray')); plt.show()
 
-
-D = np.arctan2(Fx,Fy)
+D = np.arctan2(Fy,Fx)
 D = np.degrees(D)
 #plt.imshow(D, cmap = plt.get_cmap('gray')); plt.show()
 
@@ -97,15 +97,15 @@ for x in range(F.shape[0]):
 	for y in range(F.shape[1]):
 		if(D_star[x,y] == 0 or D_star[x,y] == 180):
 			try:
-				if(F[x][y] < F[x+1][y] or F[x][y] < F[x-1][y]):
+				if(F[x][y] < F[x][y-1] or F[x][y] < F[x][y+1]):
 					I[x][y] = 0
-				else:
+				else:#
 					I[x][y] = F[x][y]
 			except:
 				pass
 		elif(D_star[x,y] == 45):
 			try:
-				if(F[x][y] < F[x+1][y] or F[x][y] < F[x-1][y-1]):
+				if(F[x][y] < F[x+1][y-1] or F[x][y] < F[x-1][y+1]):
 					I[x][y] = 0
 				else:
 					I[x][y] = F[x][y]
@@ -113,7 +113,7 @@ for x in range(F.shape[0]):
 				pass
 		elif(D_star[x,y] == 90):
 			try:
-				if(F[x][y] < F[x][y+1] or F[x][y] < F[x][y-1]):
+				if(F[x][y] < F[x-1][y] or F[x][y] < F[x+1][y]):
 					I[x][y] = 0
 				else:
 					I[x][y] = F[x][y]
@@ -121,7 +121,7 @@ for x in range(F.shape[0]):
 				pass
 		else:
 			try:
-				if(F[x][y] < F[x-1][y+1] or F[x][y] < F[x+1][y-1]):
+				if(F[x][y] < F[x-1][y-1] or F[x][y] < F[x+1][y+1]):
 					I[x][y] = 0.0
 				else:
 					I[x][y] = F[x][y]
@@ -145,27 +145,87 @@ plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 # 2. Starting from (x,y), follow the chain of connected local maxima, in both directions, as long as I(x,y) > T_l.
 # 3. Mark each pixel as it is visited.
 
-iMarked = [[0 for x in range(len(I[0]))] for y in range(len(I))]
-newI = [[0 for x in range(len(I[0]))] for y in range(len(I))]
-T_h = 0
-T_i = 0
+# iMask = [[0 for x in range(len(I[0]))] for y in range(len(I))]
+# newI = [[0 for x in range(len(I[0]))] for y in range(len(I))]
+# T_h = 0
+# T_i = 0
 
-for x in range(I.shape[0]):
-	for y in range(I.shape[1]):
-		if (iMarked[x][y] != 1):
-			if (I[x][y] > T_h):
-				iMarked[x][y] = 1
-				newI[x][y] = iMarked[x][y]
-				xT = x
-				yT = y
-				while (I[xT][yT] > T_l):
-					iMarked[xT][yT] = 1
-					newI[x][y] = iMarked[x][y]
-					if I[xT-1][yT] > T_l:
-						
+# for x in range(I.shape[0]):
+# 	for y in range(I.shape[1]):
+# 		if (iMask[x][y] != 1):
+# 			if (I[x][y] > T_h):
+# 				iMask[x][y] = 1
+# 				xT = x
+# 				yT = y
+# 				while (I[xT][yT] > T_l):
+# 					iMask[xT][yT] = 1
+# 					newI[x][y] = iMask[x][y]
+# 					if I[xT-1][yT] > T_l:
+# 			else:
+
+T_h = 0.4
+T_l = 0.1
+
+iMask = [[0 for x in range(len(D[0]))] for y in range(len(D))]				
+stack = [] 
+
+for x in range(F.shape[0]):
+	for y in range(F.shape[1]):
+		if (I[x][y] > T_h):
+			stack.append([x,y])
+			iMask[x][y] = 1
 
 
-
+while len(L) > 0:
+	x,y = stack.pop()
+	try:
+		if iMask[x+1][y] != 1:
+			if I[x+1][y] > T_l:
+				stack.append([(x+1),y])
+				iMask[x+1][y] = 1
+	except: pass
+	try:
+		if iMask[x+1][y-1] != 1:
+			if I[x+1][y-1] > T_l:
+				stack.append([(x+1),(y-1)])
+				iMask[x+1][y-1] = 1
+	except: pass
+	try:
+		if iMask[x][y-1] != 1:
+			if I[x][y-1] > T_l:
+				stack.append([(x),(y-1)])
+				iMask[x][y-1] = 1
+	except: pass
+	try:
+		if iMask[x-1][y-1] != 1:
+			if I[x-1][y-1] > T_l:
+				stack.append([(x-1),(y-1)])
+				iMask[x-1][y-1] = 1
+	except: pass
+	try:
+		if iMask[x-1][y] != 1:
+			if I[x-1][y] > T_l:
+				stack.append([(x-1),(y)])
+				iMask[x-1][y] = 1
+	except: pass
+	try:
+		if iMask[x-1][y+1] != 1:
+			if I[x-1][y+1] > T_l:
+				stack.append([(x-1),(y+1)])
+				iMask[x-1][y+1] = 1
+	except: pass
+	try:
+		if iMask[x+1][y+1] != 1:
+			if I[x+1][y+1] > T_l:
+				stack.append([(x+1),(y+1)])
+				iMask[x+1][y+1] = 1
+	except: pass
+	try:
+		if iMask[x][y+1] != 1:
+			if I[x][y+1] > T_l:
+				stack.append([(x),(y+1)])
+				iMask[x][y+1] = 1
+	except: pass
 
 
 
