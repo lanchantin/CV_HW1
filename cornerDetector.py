@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from skimage.filter import roberts, sobel
 from math import exp
 import numpy as np
+import math
 
 ########################
 ###Filtered gradient:###
@@ -17,9 +18,7 @@ import numpy as np
 ######
 ##1.## Load an image
 ######
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/checker.png'))
-print(img.shape)
-
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
 
 
 ######
@@ -33,19 +32,23 @@ def rgb2gray(rgb):
 
 g = rgb2gray(img)
 
+def GaussianKernel(sigma, width):
+    kernel = np.zeros((width,width))
+    sum = 0.0
+    mean = width/2
+    for x in range(width):
+        for y in range(width):
+            kernel[x,y] = math.exp(-0.5 * ( math.pow((x-mean)/sigma, 2.0) + math.pow((y-mean)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
+            sum += kernel[x,y]
+    # normalize        
+    for x in range(width):
+        for y in range(width):
+            kernel[x,y] /= sum;      
+    return kernel
 
-def gaussian(x, mu, sigma):
-  return exp( -(((x-mu)/(sigma))**2)/2.0 )
-kernel_radius = 3 # for an 7x7 filter
-sigma = 10 # for [-2*sigma, 2*sigma]
-hkernel = [gaussian(x, kernel_radius, sigma) for x in range(2*kernel_radius+1)]
-vkernel = [x for x in hkernel]
-kernel2d = [[xh*xv for xh in hkernel] for xv in vkernel]
-kernelsum = sum([sum(row) for row in kernel2d])
-kernel2d = [[x/kernelsum for x in row] for row in kernel2d]
-k = np.array(kernel2d)
+Gaussian = GaussianKernel(11,7)
 
-blurImg = scipy.signal.convolve2d(g, k)
+blurImg = scipy.signal.convolve2d(g, Gaussian)
 #plt.imshow(blurImg, cmap = plt.get_cmap('gray'));plt.show()
 
 #Sobel filter values
@@ -75,11 +78,8 @@ D = np.degrees(D)
 ####Finding Corners:####
 ########################
 
-
-######
 ##1.## Compute the covariance matrix C over a neighborhood around each point.
 ######
-
 L = []
 L_coords = []				
 
@@ -88,60 +88,21 @@ for x in range(D.shape[0]):
 		Ex = (Fx[x][y])**2
 		Exy = (Fx[x][y])*(Fy[x][y])
 		Ey = (Fy[x][y])**2
-		try: 
-			Ex = Ex + (Fx[x-1][y])**2
-			Exy = Exy + (Fx[x-1][y])*(Fy[x-1][y])
-			Ey = Ey + (Fy[x-1][y])**2
-		except: pass
 
-		try:
-			Ex = Ex + (Fx[x-1][y+1])**2
-			Exy = Exy + (Fx[x-1][y+1])*(Fy[x-1][y+1])
-			Ey = Ey + (Fy[x-1][y+1])**2
-		except: pass
-
-		try:
-			Ex = Ex + (Fx[x][y+1])**2
-			Exy = Exy + (Fx[x][y+1])*(Fy[x][y+1])
-			Ey = Ey + (Fy[x][y+1])**2
-		except: pass
-
-		try: 
-			Ex = Ex + (Fx[x+1][y+1])**2
-			Exy = Exy + (Fx[x+1][y+1])*(Fy[x+1][y+1])
-			Ey = Ey + (Fy[x+1][y+1])**2
-		except: pass
-
-		try: 
-			Ex = Ex + (Fx[x+1][y])**2
-			Exy = Exy + (Fx[x+1][y])*(Fy[x+1][y])
-			Ey = Ey + (Fy[x+1][y])**2
-		except: pass
-
-		try: 
-			Ex = Ex + (Fx[x+1][y-1])**2
-			Exy = Exy + (Fx[x+1][y-1])*(Fy[x+1][y-1])
-			Ey = Ey + (Fy[x+1][y-1])**2
-		except: pass
-
-		try: 
-			Ex = Ex + (Fx[x][y-1])**2
-			Exy = Exy + (Fx[x][y-1])*(Fy[x][y-1])
-			Ey = Ey + (Fy[x][y-1])**2
-		except: pass
-
-		try: 
-			Ex = Ex + (Fx[x-1][y-1])**2
-			Exy = Exy + (Fx[x-1][y-1])*(Fy[x-1][y-1])
-			Ey = Ey + (Fy[x-1][y-1])**2
-		except: pass
+		for xi in range(-1,2):
+			for yi in range(-1,2):
+				try:
+					Ex = Ex + (Fx[x+xi][y+yi])**2
+					Exy = Exy + (Fx[x+xi][y+yi])*(Fy[x+xi][y+xi])
+					Ey = Ey + (Fy[x+xi][y+yi])**2
+				except: pass
 
 		C = np.array([[Ex, Exy], [Exy, Ey]])
 
 		eigVals = np.linalg.eigvals(C)
 		smallEig = np.amin(eigVals)
 		
-		if smallEig > 0.01:
+		if smallEig > 0.5:
 			L.append(smallEig)
 			L_coords.append([x,y])
 
@@ -160,16 +121,11 @@ for i in range(0,len(L_COORDS_SORTED)):
 	if iMask[x][y] != 1:
 		L_COORD_OUTPUT.append([x,y])
 		iMask[x][y] = 1
-		try:
-			iMask[x-1][y] = 1
-			iMask[x-1][y+1] = 1
-			iMask[x][y+1] = 1
-			iMask[x+1][y+1] = 1
-			iMask[x+1][y] = 1
-			iMask[x+1][y-1] = 1
-			iMask[x][y-1] = 1
-			iMask[x-1][y-1] = 1
-		except: pass
+		for xi in range(-7,8):
+			for yi in range(-7,8):
+				try:
+					iMask[x+xi][y+yi] = 1
+				except: pass
 
 		# try:
 		# 	index = L_COORDS_SORTED.index([x,y])
@@ -185,57 +141,11 @@ for i in range(0,len(L_COORDS_SORTED)):
 		# 			L_COORDS_SORTED.pop(index1)
 		# 	except: pass
 
-		# 	try: 
-		# 		index2 = L_COORDS_SORTED.index([x-1,y+1])
-		# 		if index2 > index:
-		# 			L_COORDS_SORTED.pop(index2)
-		# 	except: pass
-
-		# 	try: 
-		# 		index3 = L_COORDS_SORTED.index([x,y+1])
-		# 		if index3 > index:
-		# 			L_COORDS_SORTED.pop(index3)
-		# 	except: pass
-
-		# 	try: 
-		# 		index4 = L_COORDS_SORTED.index([x+1,y+1])
-		# 		if index5 > index:
-		# 			L_COORDS_SORTED.pop(index5)
-		# 	except: pass
-
-		# 	try: 
-		# 		index5 = L_COORDS_SORTED.index([x,y-1])
-		# 		if index5 > index:
-		# 			L_COORDS_SORTED.pop(index5)
-		# 	except: pass
-
-		# 	try: 
-		# 		index6 = L_COORDS_SORTED.index([x+1,y-1])
-		# 		if index6 > index:
-		# 			L_COORDS_SORTED.pop(index6)
-		# 	except: pass
-
-		# 	try: 
-		# 		index7 = L_COORDS_SORTED.index([x-1,y-1])
-		# 		if index7 > index:
-		# 			L_COORDS_SORTED.pop(index7)
-		# 	except: pass
-		# except: pass
-
 iOutput = [[0 for x in range(len(D[0]))] for y in range(len(D))]
 for i in range(0,len(L_COORD_OUTPUT)):
 	x,y = L_COORD_OUTPUT[i]
 	iOutput[x][y] = 1;
 
 
-
-
-# [x-1][y]
-# [x-1][y+1]
-# [x][y+1]
-# [x+1][y+1]
-# [x+1][y]
-# [x+1][y-1]
-# [x][y-1]
-# [x-1][y-1]
+plt.imshow(iOutput, cmap = plt.get_cmap('gray')); plt.show()
 

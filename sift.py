@@ -49,7 +49,7 @@ def GaussianKernel(sigma, width):
 sigma = 0.5
 width = 7
 octaves = 4
-scales = 3
+scales = 5
 
 sigBase = 1.6
 kBase = 2.0**(1.0/scales)
@@ -60,7 +60,7 @@ for i in range(0,scales+3):
 
 GaussianPyramid = {}
 for o in range(octaves):
-    for s in range(scales+3):
+    for s in range(scales+1):
         k = kBase**s
         sigma = sigBase*k
         gaussianKernel = GaussianKernel(sigma,width)
@@ -74,18 +74,37 @@ for o in range(octaves):
 DoGPyramid = {}
 for o in range(octaves):
 	print 'octave'
-	for s in range(scales+2):
+	for s in range(scales):
 		print 'scale'
 		DoGPyramid[o,s] = scipy.signal.fftconvolve(np.subtract(GaussianPyramid[o,s],GaussianPyramid[o,s+1]),g)
 
 
-plt.imshow(DoGPyramid[0,0], cmap = plt.get_cmap('gray')); plt.show()
 
 
+#plt.imshow(DoGPyramid[0,0], cmap = plt.get_cmap('gray')); plt.show()
 
+iMask = [[0 for x in range(len(img[0]))] for y in range(len(img))]
+for o in range(0,octaves):
+	#for s in range(1,4):
+	s = 2
+	for x in range(0,len(DoGPyramid[o,s])):
+		for y in range(0,len(DoGPyramid[o,s][0])):
+			notMin = False
+			notMax = False
+			for i in range(-1,2):
+				if (notMax == False or notMin == False):
+					for xi in range(-1,2):
+						if (notMax == False or notMin == False):
+							for yi in range(-1,2):
+								if (notMax == False or notMin == False):
+									try:
+										if DoGPyramid[o,s+i][x+xi,y+yi] > DoGPyramid[o,s][x,y]:
+											notMax = True
+										elif DoGPyramid[o,s+i][x+xi,y+yi] < DoGPyramid[o,s][x,y]:
+											notMin = True
+									except: pass
+			if notMin == False or notMax == False:
+				iMask[x][y] = 1
 
-
-
-
-
+print "done"
 

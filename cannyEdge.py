@@ -18,7 +18,7 @@ import numpy as np
 ##1.## Load an image
 ######
 img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
-print(img.shape)
+
 
 #pylab.imshow(g); pylab.show()
 
@@ -43,7 +43,7 @@ k = np.array(kernel2d)
 ##2.## Find the x and y components of the gradient Fx and Fy of the image smoothed with a Gaussian.
 ######
 
-blurImg = scipy.scipy.signal.convolve2d(g, k)
+blurImg = scipy.signal.convolve2d(g, k)
 #plt.imshow(blurImg, cmap = plt.get_cmap('gray'));plt.show()
 
 #Sobel filter values
@@ -51,8 +51,8 @@ Kgx = np.array([[ -1, 0, 1], [-2,0,2], [-1,0,1]])
 Kgy = np.array([[1,2,1], [0,0,0], [-1,-2,-1]])
 
 
-Fx = scipy.scipy.signal.convolve2d(blurImg, Kgx)
-Fy = scipy.scipy.signal.convolve2d(blurImg, Kgy)
+Fx = scipy.signal.convolve2d(blurImg, Kgx)
+Fy = scipy.signal.convolve2d(blurImg, Kgy)
 
 #plt.imshow(Fx, cmap = plt.get_cmap('gray')); plt.show()
 #plt.imshow(dx, cmap = plt.get_cmap('gray'))
