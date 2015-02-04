@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from skimage.filter import roberts, sobel
 from math import exp
 import numpy as np
+import scipy.ndimage
+import math
 
 ########################
 ###Filtered gradient:###
@@ -27,33 +29,62 @@ def rgb2gray(rgb):
 
 g = rgb2gray(img)
 
-
-def gaussian(x, mu, sigma):
-  return exp( -(((x-mu)/(sigma))**2)/2.0 )
-kernel_radius = 3 # for an 7x7 filter
-sigma = 10 # for [-2*sigma, 2*sigma]
-hkernel = [gaussian(x, kernel_radius, sigma) for x in range(2*kernel_radius+1)]
-vkernel = [x for x in hkernel]
-kernel2d = [[xh*xv for xh in hkernel] for xv in vkernel]
-kernelsum = sum([sum(row) for row in kernel2d])
-kernel2d = [[x/kernelsum for x in row] for row in kernel2d]
-k = np.array(kernel2d)
-
-
-G1 = scipy.signal.convolve2d(g, k)
-
-sigma = 50 # for [-2*sigma, 2*sigma]
-hkernel = [gaussian(x, kernel_radius, sigma) for x in range(2*kernel_radius+1)]
-vkernel = [x for x in hkernel]
-kernel2d = [[xh*xv for xh in hkernel] for xv in vkernel]
-kernelsum = sum([sum(row) for row in kernel2d])
-kernel2d = [[x/kernelsum for x in row] for row in kernel2d]
-k = np.array(kernel2d)
-
-G2 = scipy.signal.convolve2d(g, k)
+def GaussianKernel(sigma, width):
+    kernel = np.zeros((width,width))
+    sum = 0.0
+    mean = width/2
+    for x in range(width):
+        for y in range(width):
+            kernel[x,y] = math.exp(-0.5 * ( math.pow((x-mean)/sigma, 2.0) + math.pow((y-mean)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
+            sum += kernel[x,y]
+    # normalize        
+    for x in range(width):
+        for y in range(width):
+            kernel[x,y] /= sum;      
+    return kernel
 
 
-D = scipy.signal.convolve2d((G2 - G1),g) 
+
+
+sigma = 0.5
+width = 7
+octaves = 4
+scales = 3
+
+sigBase = 1.6
+kBase = 2.0**(1.0/scales)
+
+currGaussian = {}
+for i in range(0,scales+3):
+	currGaussian[i] = g
+
+GaussianPyramid = {}
+for o in range(octaves):
+    for s in range(scales+3):
+        k = kBase**s
+        sigma = sigBase*k
+        gaussianKernel = GaussianKernel(sigma,width)
+        currGaussian[s] = scipy.signal.convolve2d(currGaussian[s],gaussianKernel,boundary='symm',mode='same')
+        GaussianPyramid[o,s] = currGaussian[s]
+        currGaussian[s] = scipy.ndimage.interpolation.zoom(GaussianPyramid[o,s],.5)
+        print 'scale'
+    sigBase = sigBase*2
+    print 'octave'
+
+DoGPyramid = {}
+for o in range(octaves):
+	print 'octave'
+	for s in range(scales+2):
+		print 'scale'
+		DoGPyramid[o,s] = scipy.signal.fftconvolve(np.subtract(GaussianPyramid[o,s],GaussianPyramid[o,s+1]),g)
+
+
+plt.imshow(DoGPyramid[0,0], cmap = plt.get_cmap('gray')); plt.show()
+
+
+
+
+
 
 
 
