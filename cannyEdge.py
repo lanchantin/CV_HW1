@@ -128,7 +128,7 @@ for x in range(F.shape[0]):
 			except:
 				pass
 
-plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
+#plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
 
 
@@ -176,7 +176,7 @@ for x in range(F.shape[0]):
 			iMask[x][y] = 1
 
 
-while len(L) > 0:
+while len(stack) > 0:
 	x,y = stack.pop()
 	try:
 		if iMask[x+1][y] != 1:
@@ -227,6 +227,8 @@ while len(L) > 0:
 				iMask[x][y+1] = 1
 	except: pass
 
+
+plt.imshow(iMask, cmap = plt.get_cmap('gray')); plt.show()
 
 
 
