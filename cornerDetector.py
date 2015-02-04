@@ -17,7 +17,7 @@ import numpy as np
 ######
 ##1.## Load an image
 ######
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/checker.png'))
 print(img.shape)
 
 
@@ -81,6 +81,8 @@ D = np.degrees(D)
 ######
 
 L = []
+L_coords = []				
+
 for x in range(D.shape[0]):
 	for y in range(D.shape[1]):
 		Ex = (Fx[x][y])**2
@@ -141,8 +143,72 @@ for x in range(D.shape[0]):
 		
 		if smallEig > 0.01:
 			L.append(smallEig)
+			L_coords.append([x,y])
 
 
+L_COORDS_SORTED = [x for (y,x) in sorted(zip(L,L_coords))]
+L = sorted(L)
+iMask = [[0 for x in range(len(D[0]))] for y in range(len(D))]
+
+for x in range(D.shape[0]):
+	for y in range(D.shape[1]):
+		#For each point p, remove all points in the neighborhood of p that occur lower in L.
+		try:
+			index = L_COORDS_SORTED.index([x,y])
+			try: 
+				index0 = L_COORDS_SORTED.index([x+1,y])
+				if index0 > index:
+					L_COORDS_SORTED.pop(index0)
+			except: pass
+
+			try: 
+				index1 = L_COORDS_SORTED.index([x-1,y])
+				if index1 > index:
+					L_COORDS_SORTED.pop(index1)
+			except: pass
+
+			try: 
+				index2 = L_COORDS_SORTED.index([x-1,y+1])
+				if index2 > index:
+					L_COORDS_SORTED.pop(index2)
+			except: pass
+
+			try: 
+				index3 = L_COORDS_SORTED.index([x,y+1])
+				if index3 > index:
+					L_COORDS_SORTED.pop(index3)
+			except: pass
+
+			try: 
+				index4 = L_COORDS_SORTED.index([x+1,y+1])
+				if index5 > index:
+					L_COORDS_SORTED.pop(index5)
+			except: pass
+
+			try: 
+				index5 = L_COORDS_SORTED.index([x,y-1])
+				if index5 > index:
+					L_COORDS_SORTED.pop(index5)
+			except: pass
+
+			try: 
+				index6 = L_COORDS_SORTED.index([x+1,y-1])
+				if index6 > index:
+					L_COORDS_SORTED.pop(index6)
+			except: pass
+
+			try: 
+				index7 = L_COORDS_SORTED.index([x-1,y-1])
+				if index7 > index:
+					L_COORDS_SORTED.pop(index7)
+			except: pass
+		except: pass
+
+
+
+for i in range(0:len(L_COORDS_SORTED)):
+	x,y = L_COORDS_SORTED[i]
+	iMask[x][y] = 1;
 
 ######
 ##2.## Compute the smaller eigenvalue of C. 
@@ -151,4 +217,14 @@ for x in range(D.shape[0]):
 ######
 ##3.## Save all points at which the smaller eigenvalue l2 is greater than a threshold into a list L.
 ######
+
+
+# [x-1][y]
+# [x-1][y+1]
+# [x][y+1]
+# [x+1][y+1]
+# [x+1][y]
+# [x+1][y-1]
+# [x][y-1]
+# [x-1][y-1]
 
