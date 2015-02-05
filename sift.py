@@ -27,9 +27,11 @@ print(img.shape)
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
 
-g = rgb2gray(img)
 
-def GaussianKernel(sigma, width):
+
+I = rgb2gray(img)
+
+def GaussianKernelFunc(sigma, width):
     kernel = np.zeros((width,width))
     sum = 0.0
     mean = width/2
@@ -52,59 +54,72 @@ octaves = 4
 scales = 5
 
 sigBase = 1.6
-kBase = 2.0**(1.0/scales)
+#k = 1.14869
 
-currGaussian = {}
-for i in range(0,scales+3):
-	currGaussian[i] = g
+# k = 0
+# for i in range(0,len(I)):
+# 	for j in range(0,len(I[0])):
+# 		k +=1
 
-GaussianPyramid = {}
-for o in range(octaves):
-    for s in range(scales+1):
-        k = kBase**s
-        sigma = sigBase*k
-        gaussianKernel = GaussianKernel(sigma,width)
-        currGaussian[s] = scipy.signal.convolve2d(currGaussian[s],gaussianKernel,boundary='symm',mode='same')
-        GaussianPyramid[o,s] = currGaussian[s]
-        currGaussian[s] = scipy.ndimage.interpolation.zoom(GaussianPyramid[o,s],.5)
-        print 'scale'
-    sigBase = sigBase*2
-    print 'octave'
+#I = scipy.ndimage.interpolation.zoom(I,2)
+print 'Gaussian Pyramid'
+GaussPyramid = {}
+for octave in range(octaves):
+    print '\n-----octave ',octave,'-----'
+    for scale in range(scales+1):
+        sigma = sigBase*(2.0**(octave+float(scale)/float(3)))
+        print 'scale ', scale,', sigma ', sigma
+        gaussianKernel = GaussianKernelFunc(sigma,(1+(int(6*sigma))))
+        GaussPyramid[octave,scale] = scipy.signal.convolve2d(I,gaussianKernel,boundary='symm',mode='same')
+    I = scipy.ndimage.interpolation.zoom(I,.5)
 
+    
 DoGPyramid = {}
-for o in range(octaves):
-	print 'octave'
-	for s in range(scales):
-		print 'scale'
-		DoGPyramid[o,s] = scipy.signal.fftconvolve(np.subtract(GaussianPyramid[o,s],GaussianPyramid[o,s+1]),g)
+for octave in range(octaves):
+	for scale in range(scales):
+		DoGPyramid[octave,scale] = np.subtract(GaussPyramid[octave,scale],GaussPyramid[octave,scale+1])
 
 
 
+def Extrema(x,y,octave,scale):
+	notMin = False
+	notMax = False
+	for i in range(-1,2):
+		if (notMax == False or notMin == False):
+			for xi in range(-1,2):
+				if (notMax == False or notMin == False):
+					for yi in range(-1,2):
+						if (notMax == False or notMin == False):
+							try:
+								if DoGPyramid[octave,scale+i][x+xi,y+yi] > DoGPyramid[octave,scale][x,y]:
+									notMax = True
+								elif DoGPyramid[octave,scale+i][x+xi,y+yi] < DoGPyramid[octave,scale][x,y]:
+									notMin = True
+							except: pass
+	if (notMin == False or notMax == False):
+		return True
+	else:
+		return False
 
-#plt.imshow(DoGPyramid[0,0], cmap = plt.get_cmap('gray')); plt.show()
+ExtremaCoords = []
+ExtremaSigmas = []
+for octave in range(0,octaves):
+	for scale in range(1,4):
+		for x in range(0,len(DoGPyramid[octave,scale])):
+			for y in range(0,len(DoGPyramid[octave,scale][0])):
+				if Extrema(x,y,octave,scale):
+					print 'octave: ',octave," scale: ",scale," --> [", x*(2**octave), "][",y*(2**octave),"]"
+					ExtremaCoords.append([x*(2**octave),y*(2**octave)])
+					ExtremaSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
+
+
 
 iMask = [[0 for x in range(len(img[0]))] for y in range(len(img))]
-for o in range(0,octaves):
-	#for s in range(1,4):
-	s = 2
-	for x in range(0,len(DoGPyramid[o,s])):
-		for y in range(0,len(DoGPyramid[o,s][0])):
-			notMin = False
-			notMax = False
-			for i in range(-1,2):
-				if (notMax == False or notMin == False):
-					for xi in range(-1,2):
-						if (notMax == False or notMin == False):
-							for yi in range(-1,2):
-								if (notMax == False or notMin == False):
-									try:
-										if DoGPyramid[o,s+i][x+xi,y+yi] > DoGPyramid[o,s][x,y]:
-											notMax = True
-										elif DoGPyramid[o,s+i][x+xi,y+yi] < DoGPyramid[o,s][x,y]:
-											notMin = True
-									except: pass
-			if notMin == False or notMax == False:
-				iMask[x][y] = 1
+for i in range(0,len(ExtremaCoords)):
+	x,y = ExtremaCoords[i]
+	iMask[x][y] = 1
+
+plt.imshow(iMask, cmap = plt.get_cmap('gray')); plt.show()
 
 print "done"
 

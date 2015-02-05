@@ -18,7 +18,7 @@ import math
 ######
 ##1.## Load an image
 ######
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/checkers.png'))
 
 
 ######
@@ -102,7 +102,7 @@ for x in range(D.shape[0]):
 		eigVals = np.linalg.eigvals(C)
 		smallEig = np.amin(eigVals)
 		
-		if smallEig > 0.5:
+		if smallEig > 0.25:
 			L.append(smallEig)
 			L_coords.append([x,y])
 
