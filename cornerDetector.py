@@ -10,27 +10,15 @@ from skimage.filter import roberts, sobel
 from math import exp
 import numpy as np
 import math
+from scipy import linalg
 
 ########################
 ###Filtered gradient:###
 ########################
 
-######
-##1.## Load an image
-######
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/lines.png'))
-
-
-######
-##2.## Find the x and y components of the gradient Fx and Fy of the image smoothed with a Gaussian.
-######
-
-#pylab.imshow(g); pylab.show()
-
+#convert rgb to grayscale
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
-
-
 
 def GaussianKernel(sigma):
     width = 1 + 2*(int(3.0*sigma))
@@ -47,17 +35,17 @@ def GaussianKernel(sigma):
             kernel[x,y] /= sum;      
     return kernel
 
-g = rgb2gray(img)
+inputImg = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/checker.png'))
 
-#g = img
+I = rgb2gray(inputImg)
 
 Gaussian = GaussianKernel(2)
 
 try:
-	blurImg = scipy.signal.convolve2d(g, Gaussian)
+	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
 except:
-
-
+	blurImg = scipy.signal.convolve2d(inputImg, Gaussian, mode = 'same',boundary = 'symm')
+	pass
 #plt.imshow(blurImg, cmap = plt.get_cmap('gray'));plt.show()
 
 #Sobel filter values
@@ -65,11 +53,11 @@ Kgx = np.array([[ -1, 0, 1], [-2,0,2], [-1,0,1]])
 Kgy = np.array([[1,2,1], [0,0,0], [-1,-2,-1]])
 
 
-Fx = scipy.signal.convolve2d(blurImg, Kgx)
-Fy = scipy.signal.convolve2d(blurImg, Kgy)
+Fx = scipy.signal.convolve2d(blurImg, Kgx, mode = 'same',boundary = 'symm')
+Fy = scipy.signal.convolve2d(blurImg, Kgy, mode = 'same',boundary = 'symm')
 
 #plt.imshow(Fx, cmap = plt.get_cmap('gray')); plt.show()
-#plt.imshow(dx, cmap = plt.get_cmap('gray'))
+#plt.imshow(Fy, cmap = plt.get_cmap('gray'))
  
 ######
 ##3.## Compute the edge strength F (the magnitude of the gradient) and edge orientation D = arctan(Fy/Fx) at each pixel.
@@ -89,22 +77,20 @@ D = np.degrees(D)
 
 ##1.## Compute the covariance matrix C over a neighborhood around each point.
 ######
-L = []
-L_coords = []	
-winRange = 1			
-for x in range(D.shape[0]):
-	for y in range(D.shape[1]):
-		Ex = (Fx[x][y])**2
-		Exy = (Fx[x][y])*(Fy[x][y])
-		Ey = (Fy[x][y])**2
-
-
+eigValList = []
+eigValCoordList = []	
+winRange = 4
+for x in range(I.shape[0]):
+	for y in range(I.shape[1]):
+		Ex = 0
+		Ey = 0
+		Exy = 0	
 		for xi in range(-winRange,winRange+1):
 			for yi in range(-winRange,winRange+1):
 				try:
-					Ex = Ex + (Fx[x+xi][y+yi])**2
-					Exy = Exy + (Fx[x+xi][y+yi])*(Fy[x+xi][y+xi])
-					Ey = Ey + (Fy[x+xi][y+yi])**2
+					Ex += (Fx[x+xi][y+yi])*(Fx[x+xi][y+yi])
+					Exy += (Fx[x+xi][y+yi])*(Fy[x+xi][y+xi])
+					Ey += (Fy[x+xi][y+yi])*(Fy[x+xi][y+yi])
 				except: pass
 
 		C = np.array([[Ex, Exy], [Exy, Ey]])
@@ -112,22 +98,20 @@ for x in range(D.shape[0]):
 		eigVals = np.linalg.eigvals(C)
 		smallEig = np.amin(eigVals)
 		
-		if smallEig > 0.09:
-			L.append(smallEig)
-			L_coords.append([x,y])
+		if smallEig > 0.7:
+			eigValList.append(smallEig)
+			eigValCoordList.append([x,y])
 
 
 
-
-
-L_COORDS_SORTED = [x for (y,x) in sorted(zip(L,L_coords), reverse=True)]
+coordListSORTED = [x for (y,x) in sorted(zip(eigValList,eigValCoordList), reverse=True)]
 
 
 iMask = [[0 for x in range(len(D[0]))] for y in range(len(D))]
 L_COORD_OUTPUT = []
 windowRange = 19
-for i in range(0,len(L_coords)):
-	x,y = L_coords[i]
+for i in range(0,len(coordListSORTED)):
+	x,y = coordListSORTED[i]
 		#For each point p, remove all points in the neighborhood of p that occur lower in L.
 	if iMask[x][y] != 1:
 		L_COORD_OUTPUT.append([x,y])
@@ -138,28 +122,23 @@ for i in range(0,len(L_coords)):
 					iMask[x+xi][y+yi] = 1
 				except: pass
 
-# iOutput = [[0 for x in range(len(D[0]))] for y in range(len(D))]
-# for i in range(0,len(L_COORD_OUTPUT)):
-# 	x,y = L_COORD_OUTPUT[i]
-# 	iOutput[x][y] = 1;
 
-
-boxWidth = 7
-boxWidth2 = 6
+boxWidth = 2
+boxWidth2 = boxWidth-1
 for i in range(0,len(L_COORD_OUTPUT)):
 	xi,yi = L_COORD_OUTPUT[i]
 	for x in range(-boxWidth, boxWidth+1):
 		for y in range(-boxWidth, boxWidth+1):
 			if (x == boxWidth) or (y == boxWidth) or (x == -boxWidth) or (y == -boxWidth):
 				try:
-					g[x+xi][y+yi] = 1
+					I[x+xi][y+yi] = 1
 				except:
 					pass
 			elif (x == boxWidth2) or (y == boxWidth2) or (x == -boxWidth2) or (y == -boxWidth2):
 				try:
-					g[x+xi][y+yi] = 0
+					I[x+xi][y+yi] = 0
 				except:
 					pass
 
-plt.imshow(g, cmap = plt.get_cmap('gray')); plt.show()
+plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
