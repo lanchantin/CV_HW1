@@ -12,57 +12,61 @@ import numpy as np
 import scipy.ndimage
 import math
 
-
-
-##1.## Load an image
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/lenna.png'))
-print(img.shape)
-
-
-I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
-
-def GaussianKernelFunc(sigma, width):
-    kernel = np.zeros((width,width))
-    sum = 0.0
-    mean = width/2
-    for x in range(width):
-        for y in range(width):
-            kernel[x,y] = math.exp(-0.5 * ( math.pow((x-mean)/sigma, 2.0) + math.pow((y-mean)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
-            sum += kernel[x,y]
-    # normalize        
-    for x in range(width):
-        for y in range(width):
-            kernel[x,y] /= sum;      
-    return kernel
-
-
 octaves = 4
 scales = 5
 sigBase = 1.6
+
+
+def GaussianKernelFunc(sigma):
+    width = 1 + (int(6*sigma))
+    kernel = np.zeros((width,width))
+    k = 0
+    for x in range(width):
+        for y in range(width):
+            kernel[x,y] = math.exp(-0.5 * ( math.pow((x-width/2)/sigma, 2.0) + math.pow((y-width/2)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
+            k += kernel[x,y]       
+    for x in range(width):
+        for y in range(width):
+            kernel[x,y] /= k;      
+    return kernel
+
+###########################################################
+#################### Load Images ##########################
+###########################################################
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/lenna.png'))
+
+#Greyscale Image
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
+
 
 ###########################################################
 ##########Create Gaussian and DoG Pyramids ################
 ###########################################################
 
-##### Create Gaussian Pyramid #####
-print 'Gaussian Pyramid'
+##### Gaussian Pyramid #####
+print 'Creating Gaussian Pyramid...\n'
 GaussPyramid = {}
 for octave in range(octaves):
-    print '\n-----octave ',octave,'-----'
+   # print '\n-----octave ',octave,'-----'
     for scale in range(scales+1):
         sigma = sigBase*(2.0**(octave+float(scale)/float(3)))
-        print 'scale ', scale,', sigma ', sigma
-        gaussianKernel = GaussianKernelFunc(sigma,(1+(int(6*sigma))))
+        #print 'scale ', scale,', sigma ', sigma
+        gaussianKernel = GaussianKernelFunc(sigma)
         GaussPyramid[octave,scale] = scipy.signal.convolve2d(I,gaussianKernel,boundary='symm',mode='same')
     I = scipy.ndimage.interpolation.zoom(I,.5)
 
 
-##### Create Diff of Gaussian (DoG) Pyramid #####
+##### Diff of Gaussian (DoG) Pyramid #####
+print 'Creating Difference of Gaussian Gaussian Pyramid...\n'
 DoGPyramid = {}
 for octave in range(octaves):
 	for scale in range(scales):
 		DoGPyramid[octave,scale] = np.subtract(GaussPyramid[octave,scale],GaussPyramid[octave,scale+1])
 
+
+########################################################
+################# COMPUTE ALL EXTREMA ##################
+########################################################
 
 ##### Check to see if Extrema #####
 def Extrema(x,y,octave,scale):
@@ -86,16 +90,12 @@ def Extrema(x,y,octave,scale):
 		return False
 
 
-
-########################################################
-################# COMPUTE ALL EXTREMA ##################
-########################################################
 r = 10
 ExtremaCoords = []
 ExtremaSigmas = []
-filteredList = []
+filteredCoords = []
 filteredSigmas = []
-lowContrastThresh = 0.01
+lowContrastThresh = 0.008
 for octave in range(0,octaves):
 	for scale in range(1,(scales-1)):
 		for x in range(0,len(DoGPyramid[octave,scale])):
@@ -113,9 +113,8 @@ for octave in range(0,octaves):
 							Det = H_Dxx*H_Dyy - H_Dxy*H_Dxy
 
 							if (Det >= 0) and (TR*TR/Det > (r+1.0)*(r+1.0)/r):
-							    filteredList.append([x,y])
+							    filteredCoords.append([x,y])
 							    filteredSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
-
 
 
 							     
@@ -146,8 +145,8 @@ plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
 
 I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
-for i in range(0,len(filteredList)):
-	x,y = filteredList[i]
+for i in range(0,len(filteredCoords)):
+	x,y = filteredCoords[i]
 	mag = (int(math.floor(filteredSigmas[i])/2))
 	for xi in range(-mag, mag+1):
 		for yi in range(-mag, mag+1):
