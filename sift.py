@@ -12,24 +12,14 @@ import numpy as np
 import scipy.ndimage
 import math
 
-########################
-###Filtered gradient:###
-########################
 
-######
+
 ##1.## Load an image
-######
 img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/lenna.png'))
 print(img.shape)
 
-#pylab.imshow(g); pylab.show()
 
-def rgb2gray(rgb):
-    return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
-
-
-
-I = rgb2gray(img)
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
 
 def GaussianKernelFunc(sigma, width):
     kernel = np.zeros((width,width))
@@ -46,22 +36,15 @@ def GaussianKernelFunc(sigma, width):
     return kernel
 
 
-
-
-sigma = 0.5
-width = 7
 octaves = 4
 scales = 5
-
 sigBase = 1.6
-#k = 1.14869
 
-# k = 0
-# for i in range(0,len(I)):
-# 	for j in range(0,len(I[0])):
-# 		k +=1
+###########################################################
+##########Create Gaussian and DoG Pyramids ################
+###########################################################
 
-#I = scipy.ndimage.interpolation.zoom(I,2)
+##### Create Gaussian Pyramid #####
 print 'Gaussian Pyramid'
 GaussPyramid = {}
 for octave in range(octaves):
@@ -73,14 +56,15 @@ for octave in range(octaves):
         GaussPyramid[octave,scale] = scipy.signal.convolve2d(I,gaussianKernel,boundary='symm',mode='same')
     I = scipy.ndimage.interpolation.zoom(I,.5)
 
-    
+
+##### Create Diff of Gaussian (DoG) Pyramid #####
 DoGPyramid = {}
 for octave in range(octaves):
 	for scale in range(scales):
 		DoGPyramid[octave,scale] = np.subtract(GaussPyramid[octave,scale],GaussPyramid[octave,scale+1])
 
 
-
+##### Check to see if Extrema #####
 def Extrema(x,y,octave,scale):
 	notMin = False
 	notMax = False
@@ -101,40 +85,43 @@ def Extrema(x,y,octave,scale):
 	else:
 		return False
 
+
+
+########################################################
+################# COMPUTE ALL EXTREMA ##################
+########################################################
 r = 10
 ExtremaCoords = []
 ExtremaSigmas = []
-edgeEliminatedList = []
-edgeEliminatedSigmas = []
+filteredList = []
+filteredSigmas = []
 lowContrastThresh = 0.01
 for octave in range(0,octaves):
 	for scale in range(1,(scales-1)):
 		for x in range(0,len(DoGPyramid[octave,scale])):
 			for y in range(0,len(DoGPyramid[octave,scale][0])):
 				if Extrema(x,y,octave,scale):
-					#print 'octave: ',octave," scale: ",scale," --> [", x*(2**octave), "][",y*(2**octave),"]"
 					ExtremaCoords.append([x*(2**octave),y*(2**octave)])
 					ExtremaSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
 
 					if math.fabs(DoGPyramid[octave,scale][x,y]) > lowContrastThresh:
-
 						if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
 							H_Dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
 							H_Dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
 							H_Dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
-							
 							TR = H_Dxx + H_Dyy
 							Det = H_Dxx*H_Dyy - H_Dxy*H_Dxy
 
 							if (Det >= 0) and (TR*TR/Det > (r+1.0)*(r+1.0)/r):
-							    edgeEliminatedList.append([x,y])
-							    edgeEliminatedSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
+							    filteredList.append([x,y])
+							    filteredSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
 
 
 
 							     
-
-
+########################################################
+################### DISPLAY IMAGES #####################
+########################################################
 
 iMask = [[0 for x in range(len(img[0]))] for y in range(len(img))]
 for i in range(0,len(ExtremaCoords)):
@@ -144,7 +131,7 @@ for i in range(0,len(ExtremaCoords)):
 plt.imshow(iMask, cmap = plt.get_cmap('gray')); plt.show()
 
 
-I = rgb2gray(img)
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
 for i in range(0,len(ExtremaCoords)):
 	x,y = ExtremaCoords[i]
 	mag = (int(math.floor(ExtremaSigmas[i])/2))
@@ -158,10 +145,10 @@ plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
 
 
-I = rgb2gray(img)
-for i in range(0,len(edgeEliminatedList)):
-	x,y = edgeEliminatedList[i]
-	mag = (int(math.floor(edgeEliminatedSigmas[i])/2))
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
+for i in range(0,len(filteredList)):
+	x,y = filteredList[i]
+	mag = (int(math.floor(filteredSigmas[i])/2))
 	for xi in range(-mag, mag+1):
 		for yi in range(-mag, mag+1):
 			if (xi == mag) or (yi == mag) or (xi == -mag) or (yi == -mag):
