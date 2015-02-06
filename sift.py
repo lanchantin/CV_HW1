@@ -19,7 +19,7 @@ import math
 ######
 ##1.## Load an image
 ######
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/lenna.png'))
 print(img.shape)
 
 #pylab.imshow(g); pylab.show()
@@ -101,12 +101,14 @@ def Extrema(x,y,octave,scale):
 	else:
 		return False
 
+r = 10
 ExtremaCoords = []
 ExtremaSigmas = []
 edgeEliminatedList = []
 edgeEliminatedSigmas = []
+lowContrastThresh = 0.01
 for octave in range(0,octaves):
-	for scale in range(1,4):
+	for scale in range(1,(scales-1)):
 		for x in range(0,len(DoGPyramid[octave,scale])):
 			for y in range(0,len(DoGPyramid[octave,scale][0])):
 				if Extrema(x,y,octave,scale):
@@ -114,27 +116,23 @@ for octave in range(0,octaves):
 					ExtremaCoords.append([x*(2**octave),y*(2**octave)])
 					ExtremaSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
 
-					thresCurve = 10
-					#try:
-					#print 'x: ',x,'y: ',y 
-					if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
-						dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
-						dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
-						dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
-						tr = dxx + dyy
-						det = dxx*dyy - dxy*dxy
+					if math.fabs(DoGPyramid[octave,scale][x,y]) > lowContrastThresh:
 
-						if det <= 0:
-						    flag = True
-						elif tr*tr/det < (thresCurve+1.0)*(thresCurve+1.0)/thresCurve:
-						    print('flag')
-						    flag = False
-						else:
-						    flag = True
+						if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
+							H_Dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
+							H_Dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
+							H_Dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
+							
+							TR = H_Dxx + H_Dyy
+							Det = H_Dxx*H_Dyy - H_Dxy*H_Dxy
 
-						if flag:
-						     edgeEliminatedList.append([x,y])
-						     edgeEliminatedSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
+							if (Det >= 0) and (TR*TR/Det > (r+1.0)*(r+1.0)/r):
+							    edgeEliminatedList.append([x,y])
+							    edgeEliminatedSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
+
+
+
+							     
 
 
 
@@ -171,3 +169,6 @@ for i in range(0,len(edgeEliminatedList)):
 					I[x+xi][y+yi] = 1
 				except: pass
 plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
+
+
+
