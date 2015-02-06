@@ -11,6 +11,8 @@ from math import exp
 import numpy as np
 import scipy.ndimage
 import math
+from scipy import linalg
+
 
 octaves = 4
 scales = 5
@@ -33,7 +35,7 @@ def GaussianKernelFunc(sigma):
 ###########################################################
 #################### Load Images ##########################
 ###########################################################
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/lenna.png'))
 
 #Greyscale Image
 I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
@@ -62,6 +64,7 @@ DoGPyramid = {}
 for octave in range(octaves):
 	for scale in range(scales):
 		DoGPyramid[octave,scale] = np.subtract(GaussPyramid[octave,scale],GaussPyramid[octave,scale+1])
+
 
 
 ########################################################
@@ -96,6 +99,11 @@ ExtremaSigmas = []
 filteredCoords = []
 filteredSigmas = []
 lowContrastThresh = 0.008
+
+
+keyLocalCoords = []
+keyLocalSigma = []
+
 print 'Computing Extrema Values...\n'
 for octave in range(0,octaves):
 	for scale in range(1,(scales-1)):
@@ -104,18 +112,53 @@ for octave in range(0,octaves):
 				if Extrema(x,y,octave,scale):
 					ExtremaCoords.append([x*(2**octave),y*(2**octave)])
 					ExtremaSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
+					#print('compute x hat')
+					# if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
+					# 	dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
+					# 	dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
+					# 	dss = DoGPyramid[octave,scale+1][x,y] + DoGPyramid[octave,scale-1][x,y] - 2.0 * DoGPyramid[octave,scale][x,y]
+					# 	dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
+					# 	dxs = (DoGPyramid[octave,scale+1][x,y+1]+DoGPyramid[octave,scale-1][x,y-1]-DoGPyramid[octave,scale-1][x,y+1]-DoGPyramid[octave,scale+1][x,y-1])/4.0
+					# 	dys = (DoGPyramid[octave,scale+1][x+1,y]+DoGPyramid[octave,scale-1][x-1,y]-DoGPyramid[octave,scale-1][x+1,y]-DoGPyramid[octave,scale+1][x-1,y])/4.0
+					# 	hessian = [[dxx,dxy,dxs],[dxy,dyy,dys],[dxs,dys,dss]]
+					# 	try:
+					# 		hessianInvert = linalg.inv(hessian)
+					# 	except ValueError:
+					# 		pass
+					# 		#print hessian
+					# 	#print hessianInvert
 
-					#if math.fabs(DoGPyramid[octave,scale][x,y]) > lowContrastThresh:
-					if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
-						H_Dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
-						H_Dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
-						H_Dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
-						TR = H_Dxx + H_Dyy
-						Det = H_Dxx*H_Dyy - H_Dxy*H_Dxy
 
-						if (Det >= 0) and (TR*TR/Det > (r+1.0)*(r+1.0)/r):
-						    filteredCoords.append([x,y])
-						    filteredSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
+					# 	dx = (DoGPyramid[octave,scale][x,y+1] - DoGPyramid[octave,scale][x,y-1])/2.0
+					# 	dy = (DoGPyramid[octave,scale][x+1,y] - DoGPyramid[octave,scale][x-1,y])/2.0
+					# 	ds = (DoGPyramid[octave,scale+1][x,y] - DoGPyramid[octave,scale-1][x,y])/2.0
+
+					# 	derivative = [dx,dy,ds]
+
+					# 	offset = (-1)*(np.dot(hessianInvert,derivative))
+
+					# 	oX = offset[0]
+					# 	oY = offset[1]
+					# 	oS = offset[2]
+
+					# 	keyLocalCoords.append([(x*(2**octave))+oX,(y*(2**octave))+oY])
+					# 	keyLocalSigma.append((sigBase*(2.0**(octave+float(scale)/float(3))))+oS)
+
+
+					if math.fabs(DoGPyramid[octave,scale][x,y]) > lowContrastThresh:
+						if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
+							H_Dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
+							H_Dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
+							H_Dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
+							TR = H_Dxx + H_Dyy
+							Det = H_Dxx*H_Dyy - H_Dxy*H_Dxy
+
+							if (Det >= 0) and (TR*TR/Det > (r+1.0)*(r+1.0)/r):
+							    # filteredCoords.append([(x*(2**octave))+oX,(y*(2**octave))+oY])
+							    # filteredSigmas.append((sigBase*(2.0**(octave+float(scale)/float(3))))+oS)
+							    filteredCoords.append([(x*(2**octave)),(y*(2**octave))])
+							    filteredSigmas.append((sigBase*(2.0**(octave+float(scale)/float(3)))))
+
 
 
 							     
@@ -161,6 +204,21 @@ for i in range(0,len(filteredCoords)):
 				except:
 					pass
 plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
+
+
+
+
+# I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
+# for i in range(0,len(keyLocalCoords)):
+# 	x,y = keyLocalCoords[i]
+# 	mag = (int(math.floor(keyLocalSigma[i])/2))
+# 	for xi in range(-mag, mag+1):
+# 		for yi in range(-mag, mag+1):
+# 			if (xi == mag) or (yi == mag) or (xi == -mag) or (yi == -mag):
+# 				try:
+# 					I[x+xi][y+yi] = 1
+# 				except: pass
+# plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
 
 
