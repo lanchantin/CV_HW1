@@ -5,7 +5,6 @@ import skimage.transform
 import scipy.ndimage as ndimage
 import os
 import scipy
-from scipy import linalg
 import matplotlib.pyplot as plt
 from skimage.filter import roberts, sobel
 from math import exp
@@ -16,19 +15,26 @@ import math
 ########################
 ###Filtered gradient:###
 ########################
+
 ######
 ##1.## Load an image
 ######
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
+print(img.shape)
+
+#pylab.imshow(g); pylab.show()
 
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
 
 
-def GaussianKernel(sigma):
-    width = 1 + 2*(int(3.0*sigma))
-    mean = width/2
+
+I = rgb2gray(img)
+
+def GaussianKernelFunc(sigma, width):
     kernel = np.zeros((width,width))
-    sum = 0
+    sum = 0.0
+    mean = width/2
     for x in range(width):
         for y in range(width):
             kernel[x,y] = math.exp(-0.5 * ( math.pow((x-mean)/sigma, 2.0) + math.pow((y-mean)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
@@ -40,21 +46,20 @@ def GaussianKernel(sigma):
     return kernel
 
 
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
-
-I = rgb2gray(img)
 
 
 sigma = 0.5
 width = 7
 octaves = 4
 scales = 5
+
 sigBase = 1.6
+#k = 1.14869
 
-scaleNum = 3
-thresPeak = 0.04
-thresEdge = 10
-
+# k = 0
+# for i in range(0,len(I)):
+# 	for j in range(0,len(I[0])):
+# 		k +=1
 
 #I = scipy.ndimage.interpolation.zoom(I,2)
 print 'Gaussian Pyramid'
@@ -64,12 +69,11 @@ for octave in range(octaves):
     for scale in range(scales+1):
         sigma = sigBase*(2.0**(octave+float(scale)/float(3)))
         print 'scale ', scale,', sigma ', sigma
-        gaussianKernel = GaussianKernelFunc(sigma)
+        gaussianKernel = GaussianKernelFunc(sigma,(1+(int(6*sigma))))
         GaussPyramid[octave,scale] = scipy.signal.convolve2d(I,gaussianKernel,boundary='symm',mode='same')
     I = scipy.ndimage.interpolation.zoom(I,.5)
 
-
-print 'Create DoG Pyramid\n'
+    
 DoGPyramid = {}
 for octave in range(octaves):
 	for scale in range(scales):
@@ -97,54 +101,10 @@ def Extrema(x,y,octave,scale):
 	else:
 		return False
 
-
-# SIFT - perform the sub-pixel estimation
-def interpolate_extrema(DoGPyramid, o, s, y, x, scaleNum,thresPeak):
-    imgHeight = DoGPyramid[o,s].shape[0]
-    imgWidth = DoGPyramid[o,s].shape[1]
-    it = 0
-    while it < 5:
-        hessian = hessianMatrix(DoGPyramid, o, s, y, x)
-        hessianInvert = linalg.inv(hessian)
-        derivative = derivativeD(DoGPyramid, o, s, y, x)
-        offset = NP.dot(hessianInvert,derivative)
-        offset = offset*-1.0
-        offset_x = offset[0]
-        offset_y = offset[1]
-        offset_s = offset[2]
-
-        if offset_x < 0.5 and offset_y < 0.5 and offset_s < 0.5:
-            break
-        else:
-            x += round(offset_x)
-            y += round(offset_y)
-            s += round(offset_s)
-            if s < 1 or s > scaleNum or y < SIFT_IMG_BORDER or y >= imgHeight - SIFT_IMG_BORDER or x < SIFT_IMG_BORDER or x >= imgWidth - SIFT_IMG_BORDER:
-                return []
-        it += 1
-
-    offset = [offset_x, offset_y, offset_s]
-    derivative = derivativeD(DoGPyramid, o, s, y, x)
-    D_offset = DoGPyramid[o,s][y,x] + NP.dot(derivative,offset)*0.5
-    # since D value is recomputed, so we should refilter it by the thresPeak
-    if math.fabs(D_offset) < thresPeak/scaleNum:
-        return []
-
-    feature = [o,s,y,x,offset_s,offset_y,offset_x]
-    return feature
-
-
-#--------------------------------------------------------------
-#--------------------------------------------------------------
-pre_eliminate_thres = 0.5*thresPeak/scaleNum
-localExtremaList = []
-thresPeakList = []
-thresPeakSigmas = []
-interpExtremaList = []
-edgeEliminatedList = []
-print 'Find Extrema\n'
 ExtremaCoords = []
 ExtremaSigmas = []
+edgeEliminatedList = []
+edgeEliminatedSigmas = []
 for octave in range(0,octaves):
 	for scale in range(1,4):
 		for x in range(0,len(DoGPyramid[octave,scale])):
@@ -154,16 +114,36 @@ for octave in range(0,octaves):
 					ExtremaCoords.append([x*(2**octave),y*(2**octave)])
 					ExtremaSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
 
-					if math.fabs(DoGPyramid[octave,scale][x,y]) > pre_eliminate_thres:
-						thresPeakList.append([x,y])
-						thresPeakSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
+					thresCurve = 10
+					#try:
+					#print 'x: ',x,'y: ',y 
+					if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
+						dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
+						dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
+						dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
+						tr = dxx + dyy
+						det = dxx*dyy - dxy*dxy
 
-						feature = interpolate_extrema(DoGPyramid,octave,scale,x,y,scaleNum,thresPeak)
+						if det <= 0:
+						    flag = True
+						elif tr*tr/det < (thresCurve+1.0)*(thresCurve+1.0)/thresCurve:
+						    print('flag')
+						    flag = False
+						else:
+						    flag = True
 
-#-------------------------------------------------------------
-#-------------------------------------------------------------
+						if flag:
+						     edgeEliminatedList.append([x,y])
+						     edgeEliminatedSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
 
 
+
+iMask = [[0 for x in range(len(img[0]))] for y in range(len(img))]
+for i in range(0,len(ExtremaCoords)):
+	x,y = ExtremaCoords[i]
+	iMask[x][y] = 1
+
+plt.imshow(iMask, cmap = plt.get_cmap('gray')); plt.show()
 
 
 I = rgb2gray(img)
@@ -181,25 +161,13 @@ plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
 
 I = rgb2gray(img)
-for i in range(0,len(thresPeakList)):
-	x,y = thresPeakList[i]
-	mag = (int(math.floor(thresPeakSigmas[i])/2))
+for i in range(0,len(edgeEliminatedList)):
+	x,y = edgeEliminatedList[i]
+	mag = (int(math.floor(edgeEliminatedSigmas[i])/2))
 	for xi in range(-mag, mag+1):
 		for yi in range(-mag, mag+1):
 			if (xi == mag) or (yi == mag) or (xi == -mag) or (yi == -mag):
 				try:
 					I[x+xi][y+yi] = 1
 				except: pass
-
 plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
-
-
-
-D = [[0 for x in range(len(img[0]))] for y in range(len(img))]
-for i in range(0,len(ExtremaCoords)):
-	x,y = ExtremaCoords[i]
-	D[x][y] = ExtremaSigmas[i]
-
-
-
-

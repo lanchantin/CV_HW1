@@ -17,7 +17,7 @@ import math
 ######
 ##1.## Load an image
 ######
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/mandrill.png'))
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/LakeGeorge.png'))
 
 
 #pylab.imshow(g); pylab.show()
@@ -234,8 +234,6 @@ while len(stack) > 0:
 
 
 plt.imshow(iMask, cmap = plt.get_cmap('gray')); plt.show()
-
-
 
 
 

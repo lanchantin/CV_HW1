@@ -12,79 +12,69 @@ import numpy as np
 import math
 from scipy import linalg
 
-########################
-###Filtered gradient:###
-########################
-
-#convert rgb to grayscale
-def rgb2gray(rgb):
-    return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
 
 def GaussianKernel(sigma):
     width = 1 + 2*(int(3.0*sigma))
-    mean = width/2
     kernel = np.zeros((width,width))
-    sum = 0
+    k = 0
     for x in range(width):
         for y in range(width):
-            kernel[x,y] = math.exp(-0.5 * ( math.pow((x-mean)/sigma, 2.0) + math.pow((y-mean)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
-            sum += kernel[x,y]
-    # normalize        
+            kernel[x,y] = math.exp(-0.5 * ( math.pow((x-width/2)/sigma, 2.0) + math.pow((y-width/2)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
+            k += kernel[x,y]       
     for x in range(width):
         for y in range(width):
-            kernel[x,y] /= sum;      
+            kernel[x,y] /= k;      
     return kernel
 
-inputImg = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/checker.png'))
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
 
-I = rgb2gray(inputImg)
+#greyscale img
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
 
-Gaussian = GaussianKernel(2)
+Gaussian = GaussianKernel(2.5)
 
 try:
 	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
 except:
-	blurImg = scipy.signal.convolve2d(inputImg, Gaussian, mode = 'same',boundary = 'symm')
-	pass
+	I = img
+	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
 #plt.imshow(blurImg, cmap = plt.get_cmap('gray'));plt.show()
 
-#Sobel filter values
+
+#################FILTERED GRADIENT#################
+print('Computing Filtered Gradient...')
+## Sobel filter values
 Kgx = np.array([[ -1, 0, 1], [-2,0,2], [-1,0,1]])
 Kgy = np.array([[1,2,1], [0,0,0], [-1,-2,-1]])
 
-
+##2.## Compute Gradient
 Fx = scipy.signal.convolve2d(blurImg, Kgx, mode = 'same',boundary = 'symm')
 Fy = scipy.signal.convolve2d(blurImg, Kgy, mode = 'same',boundary = 'symm')
-
 #plt.imshow(Fx, cmap = plt.get_cmap('gray')); plt.show()
 #plt.imshow(Fy, cmap = plt.get_cmap('gray'))
- 
-######
-##3.## Compute the edge strength F (the magnitude of the gradient) and edge orientation D = arctan(Fy/Fx) at each pixel.
-######
+
+##3.## Edge strength F (the magnitude of the gradient) at each pixel
 F = np.absolute(Fx) + np.absolute(Fy)
+#plt.imshow(F, cmap = plt.get_cmap('gray')); plt.show()
 
-
+##3.## Edge orientation D = arctan(Fy/Fx) at each pixel
 D = np.arctan2(Fx,Fy)
 D = np.degrees(D)
 #plt.imshow(D, cmap = plt.get_cmap('gray')); plt.show()
 
 
 
-########################
-####Finding Corners:####
-########################
+
+############FINDING CORNERS####################
 
 ##1.## Compute the covariance matrix C over a neighborhood around each point.
-######
+print('Computing Covariance Matrix and Eigenvalues...')
 eigValList = []
 eigValCoordList = []	
-winRange = 4
+winRange = 2
 for x in range(I.shape[0]):
 	for y in range(I.shape[1]):
-		Ex = 0
-		Ey = 0
-		Exy = 0	
+		Ex = 0; Ey = 0; Exy = 0	
 		for xi in range(-winRange,winRange+1):
 			for yi in range(-winRange,winRange+1):
 				try:
@@ -98,7 +88,7 @@ for x in range(I.shape[0]):
 		eigVals = np.linalg.eigvals(C)
 		smallEig = np.amin(eigVals)
 		
-		if smallEig > 0.7:
+		if smallEig > .5:
 			eigValList.append(smallEig)
 			eigValCoordList.append([x,y])
 
@@ -106,7 +96,7 @@ for x in range(I.shape[0]):
 
 coordListSORTED = [x for (y,x) in sorted(zip(eigValList,eigValCoordList), reverse=True)]
 
-
+print('Nonmaximum Suppression...')
 iMask = [[0 for x in range(len(D[0]))] for y in range(len(D))]
 L_COORD_OUTPUT = []
 windowRange = 19
@@ -123,7 +113,8 @@ for i in range(0,len(coordListSORTED)):
 				except: pass
 
 
-boxWidth = 2
+print('Display Image...')
+boxWidth = 5
 boxWidth2 = boxWidth-1
 for i in range(0,len(L_COORD_OUTPUT)):
 	xi,yi = L_COORD_OUTPUT[i]
@@ -139,6 +130,5 @@ for i in range(0,len(L_COORD_OUTPUT)):
 					I[x+xi][y+yi] = 0
 				except:
 					pass
-
 plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
