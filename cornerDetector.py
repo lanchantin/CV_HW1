@@ -26,7 +26,9 @@ def GaussianKernel(sigma):
             kernel[x,y] /= k;      
     return kernel
 
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
+picture = 'Building'
+folder = os.getcwd()+'/'+picture
+img = skimage.img_as_float(skimage.io.imread(folder +'/'+picture+ '.png'))
 
 #greyscale img
 I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
@@ -64,7 +66,6 @@ D = np.degrees(D)
 
 
 
-
 ############FINDING CORNERS####################
 
 ##1.## Compute the covariance matrix C over a neighborhood around each point.
@@ -93,7 +94,6 @@ for x in range(I.shape[0]):
 			eigValCoordList.append([x,y])
 
 
-
 coordListSORTED = [x for (y,x) in sorted(zip(eigValList,eigValCoordList), reverse=True)]
 
 print('Nonmaximum Suppression...')
@@ -111,6 +111,19 @@ for i in range(0,len(coordListSORTED)):
 				try:
 					iMask[x+xi][y+yi] = 1
 				except: pass
+
+
+#Display Smalles Eigenvalues
+eigPlot = [[0 for x in range(len(D[0]))] for y in range(len(D))]
+for i in range(0,len(eigValCoordList)):
+	x,y = eigValCoordList[i]
+	print(x)
+	print(y)
+	print(eigValList[i])
+	print i
+	eigPlot[x][y] = eigValList[i]
+scipy.misc.imsave(folder + '/eigenValues.png', eigPlot)
+
 
 
 print('Display Image...')
@@ -131,4 +144,8 @@ for i in range(0,len(L_COORD_OUTPUT)):
 				except:
 					pass
 plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
+scipy.misc.imsave(folder + '/corners.png', I)
+
+
+
 

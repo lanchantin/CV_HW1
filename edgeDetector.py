@@ -14,18 +14,13 @@ import math
 ###Filtered gradient:###
 ########################
 
-######
-##1.## Load an image
-######
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/LakeGeorge.png'))
+picture = '/Building'
+folder = os.getcwd()+picture
+img = skimage.img_as_float(skimage.io.imread(folder +picture+ '.png'))
 
 
-#pylab.imshow(g); pylab.show()
 
-def rgb2gray(rgb):
-    return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
-
-
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
 
 
 def GaussianKernel(sigma):
@@ -43,12 +38,16 @@ def GaussianKernel(sigma):
             kernel[x,y] /= sum;      
     return kernel
 
-######
+
 ##2.## Find the x and y components of the gradient Fx and Fy of the image smoothed with a Gaussian.
-######
-g = rgb2gray(img)
-Gaussian = GaussianKernel(2)
-blurImg = scipy.signal.convolve2d(g, Gaussian,mode='same')
+Gaussian = GaussianKernel(2.5)
+
+try:
+	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
+except:
+	I = img
+	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
+
 #plt.imshow(blurImg, cmap = plt.get_cmap('gray'));plt.show()
 
 #Sobel filter values
@@ -56,17 +55,19 @@ Kgx = np.array([[ -1, 0, 1], [-2,0,2], [-1,0,1]])
 Kgy = np.array([[1,2,1], [0,0,0], [-1,-2,-1]])
 
 
-Fx = scipy.signal.convolve2d(blurImg, Kgx,mode='same')
-Fy = scipy.signal.convolve2d(blurImg, Kgy,mode='same')
-
+Fx = scipy.signal.convolve2d(blurImg, Kgx,mode='same',boundary = 'symm')
+Fy = scipy.signal.convolve2d(blurImg, Kgy,mode='same',boundary = 'symm')
+skimage.io.imsave(folder + '/horizontalGradient.png', Fx)
+skimage.io.imsave(folder + '/verticalGradient.png', Fy)
 #plt.imshow(Fx, cmap = plt.get_cmap('gray')); plt.show()
 #plt.imshow(dx, cmap = plt.get_cmap('gray'))
  
-######
+
 ##3.## Compute the edge strength F (the magnitude of the gradient) and edge orientation D = arctan(Fy/Fx) at each pixel.
-######
 F = np.absolute(Fx) + np.absolute(Fy)
 #plt.imshow(F, cmap = plt.get_cmap('gray')); plt.show()
+skimage.io.imsave(folder + '/gradientStrength.png', F)
+
 
 D = np.arctan2(Fy,Fx)
 D = np.degrees(D)
@@ -76,14 +77,7 @@ D = np.degrees(D)
 ################################
 ####Nonmaximum suppression######
 ################################
-
-##1.## For each pixel find the direction D* in (0, 45, 90, 135) that is closest to the orientation D at that pixel.
-
-degList = [0,45,90,135]
-
-D_star = [[0 for x in range(len(D[0]))] for y in range(len(D))]
-D_star = np.array(D_star)
-D_star.shape
+D_star = np.array([[0 for x in range(len(D[0]))] for y in range(len(D))])
 
 for x in range(D.shape[0]):
 	for y in range(D.shape[1]):
@@ -92,11 +86,7 @@ for x in range(D.shape[0]):
 		D_star[x][y] = round(D[x][y]/45.0)
 		D_star[x][y] = (D_star[x][y])*45.0
 
-#plt.imshow(D_star, cmap = plt.get_cmap('gray')); plt.show()
-
-
 ##2.## If the edge strength F(x,y) is smaller than at least one of its neighbors along D*, set I(x,y) = 0, else set I(x,y) = F(x,y)
-
 I = [[0 for x in range(len(F[0]))] for y in range(len(F))]
 for x in range(F.shape[0]):
 	for y in range(F.shape[1]):
@@ -104,7 +94,7 @@ for x in range(F.shape[0]):
 			try:
 				if(F[x][y] < F[x][y-1] or F[x][y] < F[x][y+1]):
 					I[x][y] = 0
-				else:#
+				else:
 					I[x][y] = F[x][y]
 			except:
 				pass
@@ -127,49 +117,21 @@ for x in range(F.shape[0]):
 		else:
 			try:
 				if(F[x][y] < F[x-1][y-1] or F[x][y] < F[x+1][y+1]):
-					I[x][y] = 0.0
+					I[x][y] = 0
 				else:
 					I[x][y] = F[x][y]
 			except:
 				pass
 
 #plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
-
-
-
-
+scipy.misc.imsave(folder + '/edgeStrength.png', I)
 
 
 ######################################
 ###### Hysteresis thresholding: ######
 ######################################
-
-
-#Repeatedly do the following:
-# 1. Locate the next unvisited pixel (x,y) such that I(x,y) > T_h.
-# 2. Starting from (x,y), follow the chain of connected local maxima, in both directions, as long as I(x,y) > T_l.
-# 3. Mark each pixel as it is visited.
-
-# iMask = [[0 for x in range(len(I[0]))] for y in range(len(I))]
-# newI = [[0 for x in range(len(I[0]))] for y in range(len(I))]
-# T_h = 0
-# T_i = 0
-
-# for x in range(I.shape[0]):
-# 	for y in range(I.shape[1]):
-# 		if (iMask[x][y] != 1):
-# 			if (I[x][y] > T_h):
-# 				iMask[x][y] = 1
-# 				xT = x
-# 				yT = y
-# 				while (I[xT][yT] > T_l):
-# 					iMask[xT][yT] = 1
-# 					newI[x][y] = iMask[x][y]
-# 					if I[xT-1][yT] > T_l:
-# 			else:
-
-T_h = 0.4
-T_l = 0.1
+T_h = 0.45
+T_l = 0.2
 
 iMask = [[0 for x in range(len(D[0]))] for y in range(len(D))]				
 stack = [] 
@@ -180,75 +142,18 @@ for x in range(F.shape[0]):
 			stack.append([x,y])
 			iMask[x][y] = 1
 
-
 while len(stack) > 0:
 	x,y = stack.pop()
-	try:
-		if iMask[x+1][y] != 1:
-			if I[x+1][y] > T_l:
-				stack.append([(x+1),y])
-				iMask[x+1][y] = 1
-	except: pass
-	try:
-		if iMask[x+1][y-1] != 1:
-			if I[x+1][y-1] > T_l:
-				stack.append([(x+1),(y-1)])
-				iMask[x+1][y-1] = 1
-	except: pass
-	try:
-		if iMask[x][y-1] != 1:
-			if I[x][y-1] > T_l:
-				stack.append([(x),(y-1)])
-				iMask[x][y-1] = 1
-	except: pass
-	try:
-		if iMask[x-1][y-1] != 1:
-			if I[x-1][y-1] > T_l:
-				stack.append([(x-1),(y-1)])
-				iMask[x-1][y-1] = 1
-	except: pass
-	try:
-		if iMask[x-1][y] != 1:
-			if I[x-1][y] > T_l:
-				stack.append([(x-1),(y)])
-				iMask[x-1][y] = 1
-	except: pass
-	try:
-		if iMask[x-1][y+1] != 1:
-			if I[x-1][y+1] > T_l:
-				stack.append([(x-1),(y+1)])
-				iMask[x-1][y+1] = 1
-	except: pass
-	try:
-		if iMask[x+1][y+1] != 1:
-			if I[x+1][y+1] > T_l:
-				stack.append([(x+1),(y+1)])
-				iMask[x+1][y+1] = 1
-	except: pass
-	try:
-		if iMask[x][y+1] != 1:
-			if I[x][y+1] > T_l:
-				stack.append([(x),(y+1)])
-				iMask[x][y+1] = 1
-	except: pass
+	for xi in range(-1,2):
+		for yi in range(-1,2):
+			if (not (xi == 0 and yi == 0)):
+				try:
+					if iMask[x+xi][y+yi] != 1:
+						if I[x+xi][y+yi] > T_l:
+							stack.append([(x+xi),(y+yi)])
+							iMask[x+xi][y+yi] = 1
+				except: pass
 
 
-plt.imshow(iMask, cmap = plt.get_cmap('gray')); plt.show()
-
-
-
-# iMask = np.array(iMask)
-# x,y = iMask.shape
-
-# crop = iMask[x / 100: - x / 100, y / 100: - y / 100]
-# plt.imshow(crop, cmap = plt.get_cmap('gray')); plt.show()
-
-
-
-
-
-
-
-
-
-
+#plt.imshow(iMask, cmap = plt.get_cmap('gray')); plt.show()
+scipy.misc.imsave(folder + '/edges.png', iMask)
