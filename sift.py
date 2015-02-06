@@ -33,7 +33,7 @@ def GaussianKernelFunc(sigma):
 ###########################################################
 #################### Load Images ##########################
 ###########################################################
-img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/lenna.png'))
+img = skimage.img_as_float(skimage.io.imread(os.getcwd() + '/building.png'))
 
 #Greyscale Image
 I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
@@ -96,6 +96,7 @@ ExtremaSigmas = []
 filteredCoords = []
 filteredSigmas = []
 lowContrastThresh = 0.008
+print 'Computing Extrema Values...\n'
 for octave in range(0,octaves):
 	for scale in range(1,(scales-1)):
 		for x in range(0,len(DoGPyramid[octave,scale])):
@@ -104,17 +105,17 @@ for octave in range(0,octaves):
 					ExtremaCoords.append([x*(2**octave),y*(2**octave)])
 					ExtremaSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
 
-					if math.fabs(DoGPyramid[octave,scale][x,y]) > lowContrastThresh:
-						if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
-							H_Dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
-							H_Dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
-							H_Dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
-							TR = H_Dxx + H_Dyy
-							Det = H_Dxx*H_Dyy - H_Dxy*H_Dxy
+					#if math.fabs(DoGPyramid[octave,scale][x,y]) > lowContrastThresh:
+					if (x-1 > 0) and (y-1 > 0) and (x+1 < DoGPyramid[octave,scale].shape[0]) and (y+1 < DoGPyramid[octave,scale].shape[1]):
+						H_Dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
+						H_Dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
+						H_Dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
+						TR = H_Dxx + H_Dyy
+						Det = H_Dxx*H_Dyy - H_Dxy*H_Dxy
 
-							if (Det >= 0) and (TR*TR/Det > (r+1.0)*(r+1.0)/r):
-							    filteredCoords.append([x,y])
-							    filteredSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
+						if (Det >= 0) and (TR*TR/Det > (r+1.0)*(r+1.0)/r):
+						    filteredCoords.append([x,y])
+						    filteredSigmas.append(sigBase*(2.0**(octave+float(scale)/float(3))))
 
 
 							     
@@ -154,6 +155,11 @@ for i in range(0,len(filteredCoords)):
 				try:
 					I[x+xi][y+yi] = 1
 				except: pass
+			elif (xi == mag-1) or (yi == mag-1) or (xi == -mag+1) or (yi == -mag+1):
+				try:
+					I[x+xi][y+yi] = 0
+				except:
+					pass
 plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 
 
