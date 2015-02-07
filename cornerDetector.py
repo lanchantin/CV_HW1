@@ -13,6 +13,13 @@ import math
 from scipy import linalg
 
 
+picture = 'Checker'
+folder = os.getcwd()+'/'+picture
+img = skimage.img_as_float(skimage.io.imread(folder +'/'+picture+ '.png'))
+
+#greyscale img
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
+
 def GaussianKernel(sigma):
     width = 1 + 2*(int(3.0*sigma))
     kernel = np.zeros((width,width))
@@ -26,14 +33,8 @@ def GaussianKernel(sigma):
             kernel[x,y] /= k;      
     return kernel
 
-picture = 'Building'
-folder = os.getcwd()+'/'+picture
-img = skimage.img_as_float(skimage.io.imread(folder +'/'+picture+ '.png'))
 
-#greyscale img
-I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
-
-Gaussian = GaussianKernel(2.5)
+Gaussian = GaussianKernel(2)
 
 try:
 	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
@@ -52,11 +53,14 @@ Kgy = np.array([[1,2,1], [0,0,0], [-1,-2,-1]])
 ##2.## Compute Gradient
 Fx = scipy.signal.convolve2d(blurImg, Kgx, mode = 'same',boundary = 'symm')
 Fy = scipy.signal.convolve2d(blurImg, Kgy, mode = 'same',boundary = 'symm')
+skimage.io.imsave(folder + '/horizontalGradient.png', Fx)
+skimage.io.imsave(folder + '/verticalGradient.png', Fy)
 #plt.imshow(Fx, cmap = plt.get_cmap('gray')); plt.show()
 #plt.imshow(Fy, cmap = plt.get_cmap('gray'))
 
 ##3.## Edge strength F (the magnitude of the gradient) at each pixel
 F = np.absolute(Fx) + np.absolute(Fy)
+skimage.io.imsave(folder + '/gradientStrength.png', F)
 #plt.imshow(F, cmap = plt.get_cmap('gray')); plt.show()
 
 ##3.## Edge orientation D = arctan(Fy/Fx) at each pixel
@@ -89,6 +93,7 @@ for x in range(I.shape[0]):
 		eigVals = np.linalg.eigvals(C)
 		smallEig = np.amin(eigVals)
 		
+
 		if smallEig > .5:
 			eigValList.append(smallEig)
 			eigValCoordList.append([x,y])
@@ -117,10 +122,6 @@ for i in range(0,len(coordListSORTED)):
 eigPlot = [[0 for x in range(len(D[0]))] for y in range(len(D))]
 for i in range(0,len(eigValCoordList)):
 	x,y = eigValCoordList[i]
-	print(x)
-	print(y)
-	print(eigValList[i])
-	print i
 	eigPlot[x][y] = eigValList[i]
 scipy.misc.imsave(folder + '/eigenValues.png', eigPlot)
 
@@ -143,7 +144,7 @@ for i in range(0,len(L_COORD_OUTPUT)):
 					I[x+xi][y+yi] = 0
 				except:
 					pass
-plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
+#plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 scipy.misc.imsave(folder + '/corners.png', I)
 
 

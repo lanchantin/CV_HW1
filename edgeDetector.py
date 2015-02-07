@@ -14,7 +14,7 @@ import math
 ###Filtered gradient:###
 ########################
 
-picture = '/Building'
+picture = '/Checker'
 folder = os.getcwd()+picture
 img = skimage.img_as_float(skimage.io.imread(folder +picture+ '.png'))
 
@@ -40,7 +40,7 @@ def GaussianKernel(sigma):
 
 
 ##2.## Find the x and y components of the gradient Fx and Fy of the image smoothed with a Gaussian.
-Gaussian = GaussianKernel(2.5)
+Gaussian = GaussianKernel(2)
 
 try:
 	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
