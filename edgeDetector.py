@@ -14,34 +14,29 @@ import math
 ###Filtered gradient:###
 ########################
 
-picture = '/LakeGeorge'
+sigma = 3
+T_h = 0.3
+T_l = 0.15
+
+picture = '/Building'
 folder = os.getcwd()+picture
 img = skimage.img_as_float(skimage.io.imread(folder +picture+ '.png'))
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144]) #Greyscale Image
 
 
+# CREATE GAUSSIAN FOR CONVOLUTION
+w = 1 + (int(6*sigma))
+Gaussian = np.zeros((w,w))
+k = 0
+for x in range(w):
+    for y in range(w):
+        Gaussian[x,y] = math.exp(-0.5 * ( math.pow((x-w/2)/sigma, 2.0) + math.pow((y-w/2)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
+        k += G[x,y]       
+for x in range(w):
+    for y in range(w):
+        Gaussian[x,y] /= k;     
 
-I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
-
-
-def GaussianKernel(sigma):
-    width = 1 + 2*(int(3.0*sigma))
-    mean = width/2
-    kernel = np.zeros((width,width))
-    sum = 0
-    for x in range(width):
-        for y in range(width):
-            kernel[x,y] = math.exp(-0.5 * ( math.pow((x-mean)/sigma, 2.0) + math.pow((y-mean)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
-            sum += kernel[x,y]
-    # normalize        
-    for x in range(width):
-        for y in range(width):
-            kernel[x,y] /= sum;      
-    return kernel
-
-
-##2.## Find the x and y components of the gradient Fx and Fy of the image smoothed with a Gaussian.
-Gaussian = GaussianKernel(1.5)
-
+#BLUR IMAGE
 try:
 	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
 except:
@@ -50,10 +45,12 @@ except:
 
 #plt.imshow(blurImg, cmap = plt.get_cmap('gray'));plt.show()
 
+
+#################FILTERED GRADIENT#################
 #Sobel filter values
+print('Computing Filtered Gradient...')
 Kgx = np.array([[ -1, 0, 1], [-2,0,2], [-1,0,1]])
 Kgy = np.array([[1,2,1], [0,0,0], [-1,-2,-1]])
-
 
 Fx = scipy.signal.convolve2d(blurImg, Kgx,mode='same',boundary = 'symm')
 Fy = scipy.signal.convolve2d(blurImg, Kgy,mode='same',boundary = 'symm')
@@ -62,7 +59,6 @@ skimage.io.imsave(folder + '/verticalGradient.png', Fy)
 #plt.imshow(Fx, cmap = plt.get_cmap('gray')); plt.show()
 #plt.imshow(dx, cmap = plt.get_cmap('gray'))
  
-
 ##3.## Compute the edge strength F (the magnitude of the gradient) and edge orientation D = arctan(Fy/Fx) at each pixel.
 F = np.absolute(Fx) + np.absolute(Fy)
 #plt.imshow(F, cmap = plt.get_cmap('gray')); plt.show()
@@ -130,8 +126,7 @@ scipy.misc.imsave(folder + '/edgeStrength.png', I)
 ######################################
 ###### Hysteresis thresholding: ######
 ######################################
-T_h = 0.4
-T_l = 0.2
+
 
 iMask = [[0 for x in range(len(D[0]))] for y in range(len(D))]				
 stack = [] 

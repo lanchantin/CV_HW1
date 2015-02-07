@@ -12,33 +12,40 @@ import numpy as np
 import math
 from scipy import linalg
 
-sigma = 2
-winRange = 3
-smallEigThreshold = 0.65
+########################
+####### Parameters #####
+########################
+sigma = 3.2
+winRange = 4
+smallEigThreshold = 1
 
-picture = 'LakeGeorge'
+
+########################
+####### Load Image #####
+########################
+picture = 'Building'
 folder = os.getcwd()+'/'+picture
 img = skimage.img_as_float(skimage.io.imread(folder +'/'+picture+ '.png'))
-
-#greyscale img
-I = np.dot(img[...,:3], [0.299, 0.587, 0.144])
-
-def GaussianKernel(sigma):
-    width = 1 + 2*(int(3.0*sigma))
-    kernel = np.zeros((width,width))
-    k = 0
-    for x in range(width):
-        for y in range(width):
-            kernel[x,y] = math.exp(-0.5 * ( math.pow((x-width/2)/sigma, 2.0) + math.pow((y-width/2)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
-            k += kernel[x,y]       
-    for x in range(width):
-        for y in range(width):
-            kernel[x,y] /= k;      
-    return kernel
+I = np.dot(img[...,:3], [0.299, 0.587, 0.144]) #Greyscale Image
 
 
-Gaussian = GaussianKernel(sigma)
+########################
+###Filtered gradient:###
+########################
 
+# CREATE GAUSSIAN FOR CONVOLUTION
+w = 1 + (int(6*sigma))
+Gaussian = np.zeros((w,w))
+k = 0
+for x in range(w):
+    for y in range(w):
+        Gaussian[x,y] = math.exp(-0.5 * ( math.pow((x-w/2)/sigma, 2.0) + math.pow((y-w/2)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
+        k += G[x,y]       
+for x in range(w):
+    for y in range(w):
+        Gaussian[x,y] /= k;      
+
+#BLUR IMAGE
 try:
 	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
 except:
@@ -148,7 +155,3 @@ for i in range(0,len(L_COORD_OUTPUT)):
 					pass
 #plt.imshow(I, cmap = plt.get_cmap('gray')); plt.show()
 scipy.misc.imsave(folder + '/corners.png', I)
-
-
-
-

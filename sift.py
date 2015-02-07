@@ -22,7 +22,7 @@ initialSigma = 1.6
 ###########################################################
 #################### Load Images ##########################
 ###########################################################
-picture = 'LakeGeorge'
+picture = 'Checker'
 folder = os.getcwd()+'/'+picture
 img = skimage.img_as_float(skimage.io.imread(folder +'/'+picture+ '.png'))
 
@@ -116,13 +116,13 @@ for octave in range(0,octaves):
 
 
 						### KEYPOINT LOCALIZATION ###
-						dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
-						dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
-						dss = DoGPyramid[octave,scale+1][x,y] + DoGPyramid[octave,scale-1][x,y] - 2.0 * DoGPyramid[octave,scale][x,y]
-						dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
-						dxs = (DoGPyramid[octave,scale+1][x,y+1]+DoGPyramid[octave,scale-1][x,y-1]-DoGPyramid[octave,scale-1][x,y+1]-DoGPyramid[octave,scale+1][x,y-1])/4.0
-						dys = (DoGPyramid[octave,scale+1][x+1,y]+DoGPyramid[octave,scale-1][x-1,y]-DoGPyramid[octave,scale-1][x+1,y]-DoGPyramid[octave,scale+1][x-1,y])/4.0
-						Hess = [[dxx,dxy,dxs],[dxy,dyy,dys],[dxs,dys,dss]]
+						Dxx = DoGPyramid[octave,scale][x,y+1] + DoGPyramid[octave,scale][x,y-1] - 2.0 * DoGPyramid[octave,scale][x,y]
+						Dyy = DoGPyramid[octave,scale][x+1,y] + DoGPyramid[octave,scale][x-1,y] - 2.0 * DoGPyramid[octave,scale][x,y]
+						Dss = DoGPyramid[octave,scale+1][x,y] + DoGPyramid[octave,scale-1][x,y] - 2.0 * DoGPyramid[octave,scale][x,y]
+						Dxy = (DoGPyramid[octave,scale][x+1,y+1]+DoGPyramid[octave,scale][x-1,y-1]-DoGPyramid[octave,scale][x-1,y+1]-DoGPyramid[octave,scale][x+1,y-1])/4.0
+						Dxs = (DoGPyramid[octave,scale+1][x,y+1]+DoGPyramid[octave,scale-1][x,y-1]-DoGPyramid[octave,scale-1][x,y+1]-DoGPyramid[octave,scale+1][x,y-1])/4.0
+						Dys = (DoGPyramid[octave,scale+1][x+1,y]+DoGPyramid[octave,scale-1][x-1,y]-DoGPyramid[octave,scale-1][x+1,y]-DoGPyramid[octave,scale+1][x-1,y])/4.0
+						Hess = [[Dxx,Dxy,Dxs],[Dxy,Dyy,Dys],[Dxs,Dys,Dss]]
 
 						dx = (DoGPyramid[octave,scale][x,y+1] - DoGPyramid[octave,scale][x,y-1])/2.0
 						dy = (DoGPyramid[octave,scale][x+1,y] - DoGPyramid[octave,scale][x-1,y])/2.0
