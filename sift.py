@@ -14,10 +14,15 @@ import math
 from scipy import linalg
 
 
+lowContrastThresh = 0.009
+octaves = 4
+scales = 5
+initialSigma = 1.6
+
 ###########################################################
 #################### Load Images ##########################
 ###########################################################
-picture = 'Cameraman'
+picture = 'LakeGeorge'
 folder = os.getcwd()+'/'+picture
 img = skimage.img_as_float(skimage.io.imread(folder +'/'+picture+ '.png'))
 
@@ -32,7 +37,6 @@ except:
 ###########################################################
 ##########Create Gaussian and DoG Pyramids ################
 ###########################################################
-initialSigma = 1.6
 def createGaussian(sigma):
     w = 1 + (int(6*sigma))
     G = np.zeros((w,w))
@@ -48,8 +52,6 @@ def createGaussian(sigma):
 
 
 ##### Gaussian Pyramid #####
-octaves = 4
-scales = 5
 print 'Creating Gaussian Pyramid...\n'
 GaussPyramid = {}
 for octave in range(octaves):
@@ -102,7 +104,6 @@ filteredSigmas = []
 keyLocalCoords = []
 keyLocalSigma = []
 r = 10
-lowContrastThresh = 0.009
 print 'Computing Extrema Values...\n'
 for octave in range(0,octaves):
 	for scale in range(1,(scales-1)):

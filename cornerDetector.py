@@ -12,8 +12,11 @@ import numpy as np
 import math
 from scipy import linalg
 
+sigma = 2
+winRange = 3
+smallEigThreshold = 0.65
 
-picture = 'Checker'
+picture = 'LakeGeorge'
 folder = os.getcwd()+'/'+picture
 img = skimage.img_as_float(skimage.io.imread(folder +'/'+picture+ '.png'))
 
@@ -34,7 +37,7 @@ def GaussianKernel(sigma):
     return kernel
 
 
-Gaussian = GaussianKernel(2)
+Gaussian = GaussianKernel(sigma)
 
 try:
 	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
@@ -76,7 +79,6 @@ D = np.degrees(D)
 print('Computing Covariance Matrix and Eigenvalues...')
 eigValList = []
 eigValCoordList = []	
-winRange = 2
 for x in range(I.shape[0]):
 	for y in range(I.shape[1]):
 		Ex = 0; Ey = 0; Exy = 0	
@@ -94,7 +96,7 @@ for x in range(I.shape[0]):
 		smallEig = np.amin(eigVals)
 		
 
-		if smallEig > .5:
+		if smallEig > smallEigThreshold:
 			eigValList.append(smallEig)
 			eigValCoordList.append([x,y])
 

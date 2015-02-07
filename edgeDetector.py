@@ -14,7 +14,7 @@ import math
 ###Filtered gradient:###
 ########################
 
-picture = '/Checker'
+picture = '/LakeGeorge'
 folder = os.getcwd()+picture
 img = skimage.img_as_float(skimage.io.imread(folder +picture+ '.png'))
 
@@ -40,7 +40,7 @@ def GaussianKernel(sigma):
 
 
 ##2.## Find the x and y components of the gradient Fx and Fy of the image smoothed with a Gaussian.
-Gaussian = GaussianKernel(2)
+Gaussian = GaussianKernel(1.5)
 
 try:
 	blurImg = scipy.signal.convolve2d(I, Gaussian, mode = 'same',boundary = 'symm')
@@ -130,7 +130,7 @@ scipy.misc.imsave(folder + '/edgeStrength.png', I)
 ######################################
 ###### Hysteresis thresholding: ######
 ######################################
-T_h = 0.45
+T_h = 0.4
 T_l = 0.2
 
 iMask = [[0 for x in range(len(D[0]))] for y in range(len(D))]				
