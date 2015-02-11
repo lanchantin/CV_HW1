@@ -10,18 +10,29 @@ from skimage.filter import roberts, sobel
 from math import exp
 import numpy as np
 import math
-########################
-###Filtered gradient:###
-########################
 
+
+
+########################
+####### Parameters #####
+########################
 sigma = 3
 T_h = 0.3
 T_l = 0.15
 
-picture = '/Building'
+
+########################
+####### Load Image #####
+########################
+picture = '/Lena'
 folder = os.getcwd()+picture
 img = skimage.img_as_float(skimage.io.imread(folder +picture+ '.png'))
 I = np.dot(img[...,:3], [0.299, 0.587, 0.144]) #Greyscale Image
+
+
+########################
+###Filtered gradient:###
+########################
 
 
 # CREATE GAUSSIAN FOR CONVOLUTION
@@ -31,7 +42,7 @@ k = 0
 for x in range(w):
     for y in range(w):
         Gaussian[x,y] = math.exp(-0.5 * ( math.pow((x-w/2)/sigma, 2.0) + math.pow((y-w/2)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
-        k += G[x,y]       
+        k += Gaussian[x,y]       
 for x in range(w):
     for y in range(w):
         Gaussian[x,y] /= k;     

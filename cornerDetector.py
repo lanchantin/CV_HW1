@@ -15,15 +15,15 @@ from scipy import linalg
 ########################
 ####### Parameters #####
 ########################
-sigma = 3.2
-winRange = 4
-smallEigThreshold = 1
+sigma = 2
+winRange = 1
+smallEigThreshold = 0.1
 
 
 ########################
 ####### Load Image #####
 ########################
-picture = 'Building'
+picture = 'Lena'
 folder = os.getcwd()+'/'+picture
 img = skimage.img_as_float(skimage.io.imread(folder +'/'+picture+ '.png'))
 I = np.dot(img[...,:3], [0.299, 0.587, 0.144]) #Greyscale Image
@@ -40,7 +40,7 @@ k = 0
 for x in range(w):
     for y in range(w):
         Gaussian[x,y] = math.exp(-0.5 * ( math.pow((x-w/2)/sigma, 2.0) + math.pow((y-w/2)/sigma, 2.0)))/(2*math.pi*sigma*sigma)
-        k += G[x,y]       
+        k += Gaussian[x,y]       
 for x in range(w):
     for y in range(w):
         Gaussian[x,y] /= k;      
